@@ -11,7 +11,7 @@
 
 ### "¿Qué es Historias de la Mente?"
 
-Es un espacio creado por Javier Vieira, Psicólogo Especialista, para mujeres que están viviendo o saliendo de relaciones con narcisistas. Aquí no te dan frases bonitas ni te dicen que "eres suficiente". Aquí te explican por qué tu cuerpo sigue enganchado aunque tu mente ya sabe la verdad. Y te acompañan a salir paso a paso. 🖤
+Es un espacio creado por Javier Vieira, Psicólogo Especialista, para mujeres que están viviendo o saliendo de relaciones con narcisistas. Aquí no te dan frases bonitas ni te dicen que "eres suficiente". Aquí te explican por qué tu cuerpo sigue enganchado aunque tu mente ya sabe la verdad. Y te acompañan a salir paso a paso. 💛
 
 ### "¿Quién es Javier?"
 
@@ -19,7 +19,7 @@ Javier Vieira es Psicólogo Especialista. Lleva años trabajando con mujeres que
 
 ### "¿Y tú quién eres, Paula?"
 
-Soy parte del equipo de Javier en Historias de la Mente. Estoy aquí para acompañarte, responderte lo que pueda, y conectarte con los recursos que tenemos para ti. No soy terapeuta, pero llevo tiempo en esto y entiendo lo que estás pasando. 🖤
+Soy parte del equipo de Javier en Historias de la Mente. Estoy aquí para acompañarte, responderte lo que pueda, y conectarte con los recursos que tenemos para ti. No soy terapeuta, pero llevo tiempo en esto y entiendo lo que estás pasando. 💛
 
 ---
 
@@ -27,7 +27,7 @@ Soy parte del equipo de Javier en Historias de la Mente. Estoy aquí para acompa
 
 ### "¿Qué clase gratuita?"
 
-Javier tiene una clase gratuita donde explica cómo funciona el trauma bonding — por qué tu cuerpo se engancha a alguien que te hace daño aunque tu mente ya sepa la verdad. También habla de apego ansioso y del ciclo narcisista. Es en vivo, puedes hacerle preguntas directamente. Sin costo. 🖤
+Javier tiene una clase gratuita donde explica cómo funciona el trauma bonding — por qué tu cuerpo se engancha a alguien que te hace daño aunque tu mente ya sepa la verdad. También habla de apego ansioso y del ciclo narcisista. Es en vivo, puedes hacerle preguntas directamente. Sin costo. 💛
 
 ### "¿De qué trata la clase?"
 
@@ -39,7 +39,7 @@ Aproximadamente una hora. Pero el impacto te dura mucho más que eso. Muchas muj
 
 ### "¿Tengo que pagar algo?"
 
-No. La clase es completamente gratuita. Sin truco, sin letra pequeña. Javier la da porque sabe que el primer paso es entender qué te está pasando. Después tú decides si quieres seguir profundizando. 🖤
+No. La clase es completamente gratuita. Sin truco, sin letra pequeña. Javier la da porque sabe que el primer paso es entender qué te está pasando. Después tú decides si quieres seguir profundizando. 💛
 
 ### "¿Es en vivo o grabada?"
 
@@ -67,11 +67,11 @@ Un proceso guiado paso a paso por Javier. No es contenido genérico de internet 
 
 ### "¿Funciona si todavía estoy con él?"
 
-Sí. Muchas mujeres empiezan el proceso mientras todavía están en la relación. No tienes que haberte ido para empezar a entender lo que pasa. A veces, entender es lo que te da la fuerza para decidir. 🖤
+Sí. Muchas mujeres empiezan el proceso mientras todavía están en la relación. No tienes que haberte ido para empezar a entender lo que pasa. A veces, entender es lo que te da la fuerza para decidir. 💛
 
 ### "¿Es terapia?"
 
-Apego Detox no es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas algo más personalizado, Javier tiene un programa de sesiones uno a uno. Pero primero, la clase gratuita es el mejor punto de partida. 🖤
+Apego Detox no es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas algo más personalizado, Javier tiene un programa de sesiones uno a uno. Pero primero, la clase gratuita es el mejor punto de partida. 💛
 
 ---
 
@@ -81,7 +81,7 @@ Apego Detox no es terapia individual. Es un programa de acompañamiento y educac
 
 ### "¿Javier da consultas?" / "¿Puedo hablar con un psicólogo?"
 
-Sí. Javier tiene un programa que se llama 3 Citas Psicológicas. Son 3 sesiones profesionales donde trabajas directamente con él sobre el vínculo traumático. Cuesta $150 USD las tres sesiones. 🖤
+Sí. Javier tiene un programa que se llama 3 Sesiones para Soltar. Son 3 sesiones profesionales donde trabajas directamente con él sobre el vínculo traumático. Cuesta $150 USD las tres sesiones. 💛
 
 ### "¿Cómo funciona?"
 
@@ -93,11 +93,11 @@ El pago es por PayPal. Puedes pagar con tarjeta débito o crédito, no necesitas
 
 ### "Ya pagué" / (envía captura de pago)
 
-Recibida 🖤 Ahora vamos a programar tu cita directamente con Javier. Escríbele por aquí para agendar: [link de WhatsApp de Javier]
+Recibida 💛 Ahora vamos a programar tu cita directamente con Javier. Escríbele por aquí para agendar: [link de WhatsApp de Javier]
 
 ### "¿Es caro?" / "No sé si puedo pagarlo"
 
-Entiendo. Si ahora no se puede, la clase gratuita te va a dar mucha claridad y Apego Detox son $25. Este espacio sigue aquí para cuando estés lista 🖤
+Entiendo. Si ahora no se puede, la clase gratuita te va a dar mucha claridad y Apego Detox son $25. Este espacio sigue aquí para cuando estés lista 💛
 
 ---
 
@@ -105,7 +105,7 @@ Entiendo. Si ahora no se puede, la clase gratuita te va a dar mucha claridad y A
 
 ### "¿Qué es el trauma bonding?"
 
-Es cuando tu cuerpo se engancha a alguien que te hace daño. Funciona como una adicción: él te da amor intenso, luego te lo quita, y cuando vuelve con una migaja tu cerebro explota de alivio. No eres débil — tu cerebro está atrapado en un ciclo químico. La dopamina que libera es la misma que con una adicción. 🖤
+Es cuando tu cuerpo se engancha a alguien que te hace daño. Funciona como una adicción: él te da amor intenso, luego te lo quita, y cuando vuelve con una migaja tu cerebro explota de alivio. No eres débil — tu cerebro está atrapado en un ciclo químico. La dopamina que libera es la misma que con una adicción. 💛
 
 ### "¿Por qué no puedo dejarlo si sé que me hace daño?"
 
@@ -121,7 +121,7 @@ Los primeros 90 días sin contacto son los más duros. Tu cerebro busca la dosis
 
 ### "¿Qué es apego ansioso?"
 
-Es cuando necesitas que el otro te confirme constantemente que te quiere. Revisas su teléfono, analizas cada mensaje, te desesperas si no responde rápido. No nació contigo — es un patrón que aprendiste de niña, cuando el amor que recibías era inconsistente. Tu sistema nervioso aprendió: "si no vigilo, me abandonan." 🖤
+Es cuando necesitas que el otro te confirme constantemente que te quiere. Revisas su teléfono, analizas cada mensaje, te desesperas si no responde rápido. No nació contigo — es un patrón que aprendiste de niña, cuando el amor que recibías era inconsistente. Tu sistema nervioso aprendió: "si no vigilo, me abandonan." 💛
 
 ### "¿Se puede cambiar el apego?"
 
@@ -133,7 +133,7 @@ Sí. Se llama "seguridad ganada". No es fácil ni rápido, pero tu cerebro puede
 
 ### "¿Qué es el ciclo narcisista?"
 
-Idealización (te pone en un pedestal) → Devaluación (te critica, te ignora, te invalida) → Descarte (te deja o te amenaza con irse) → Hoovering (vuelve a buscarte con promesas). Se repite una y otra vez. Cada vuelta te deja más confundida y más enganchada. No es tu culpa — es un patrón diseñado para controlarte. 🖤
+Idealización (te pone en un pedestal) → Devaluación (te critica, te ignora, te invalida) → Descarte (te deja o te amenaza con irse) → Hoovering (vuelve a buscarte con promesas). Se repite una y otra vez. Cada vuelta te deja más confundida y más enganchada. No es tu culpa — es un patrón diseñado para controlarte. 💛
 
 ### "¿Cómo sé si es narcisista?"
 
@@ -145,7 +145,7 @@ No puedo diagnosticar a nadie. Pero hay patrones: ciclos de amor intenso y frial
 
 ### "¿Qué es gaslighting?"
 
-Es cuando alguien te hace dudar de tu propia realidad. "Eso no pasó", "estás exagerando", "estás loca". Después de años de esto, ya no confías en lo que ves, sientes o recuerdas. Pero no estás loca. Tu percepción es correcta. Él la manipuló para controlarte. 🖤
+Es cuando alguien te hace dudar de tu propia realidad. "Eso no pasó", "estás exagerando", "estás loca". Después de años de esto, ya no confías en lo que ves, sientes o recuerdas. Pero no estás loca. Tu percepción es correcta. Él la manipuló para controlarte. 💛
 
 ---
 
@@ -173,4 +173,4 @@ Javier trabaja desde Colombia, pero el contenido y los programas son 100% online
 
 ### "¿Tienen grupos de apoyo?"
 
-Tenemos una comunidad de WhatsApp donde compartimos contenido diario. Y los programas incluyen acompañamiento. Si quieres empezar, la clase gratuita es el mejor primer paso. 🖤
+Tenemos una comunidad de WhatsApp donde compartimos contenido diario. Y los programas incluyen acompañamiento. Si quieres empezar, la clase gratuita es el mejor primer paso. 💛

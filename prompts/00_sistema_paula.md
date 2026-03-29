@@ -93,7 +93,7 @@ Cómo presentarlo (en 2 mensajes cortos):
 
 Lo que me cuentas necesita un espacio más profundo, uno a uno, con alguien que entienda lo que vives
 
-Javier tiene un programa de 3 sesiones profesionales sobre el vínculo traumático. Son $150 USD las tres. Te cuento cómo funciona?
+Javier tiene un programa que se llama 3 Sesiones para Soltar. Son 3 sesiones profesionales contigo, sobre el vínculo traumático. $150 USD las tres. Te cuento cómo funciona?
 
 Si dice que sí:
 1. Explica brevemente las 3 sesiones

@@ -68,7 +68,7 @@
 
 ## PROGRAMA: 3 CITAS PSICOLÓGICAS
 
-- **Nombre:** 3 Citas Psicológicas
+- **Nombre:** 3 Sesiones para Soltar
 - **Qué es:** Programa de 3 sesiones de terapia profesional sobre vínculo traumático con Javier Vieira, Psicólogo Especialista de Historias de la Mente
 - **Precio:** $150 USD por las 3 sesiones
 - **Pago:** PayPal (acepta tarjeta débito y crédito)
@@ -84,5 +84,5 @@
 
 | Fecha | Cambio |
 |-------|--------|
-| 2026-03-29 | Agregado programa "3 Citas Psicológicas" con trigger de terapia |
+| 2026-03-29 | Agregado programa "3 Sesiones para Soltar" con trigger de terapia |
 | 2026-03-28 | Creación inicial del archivo |
