@@ -58,12 +58,12 @@ setInterval(() => {
 // --- Media Handling ---
 
 const MEDIA_RESPONSES = {
-  audio: 'No puedo escuchar audios por aqui, pero me encantaria leerte. Me escribes lo que querias decirme? \uD83D\uDDA4',
+  audio: 'No puedo escuchar audios por aqui, pero me encantaria leerte. Me escribes lo que querias decirme? \uD83D\uDC9B',
   image: 'Vi que me mandaste una imagen pero no puedo verla por aqui. Si necesitas contarme algo, escribemelo y te ayudo \u2728',
-  video: 'Recibi tu video pero no puedo reproducirlo por aqui. Me cuentas en texto lo que querias mostrarme? \uD83D\uDDA4',
-  sticker: 'Recibi tu sticker \uD83D\uDDA4 Cuentame, como estas?',
+  video: 'Recibi tu video pero no puedo reproducirlo por aqui. Me cuentas en texto lo que querias mostrarme? \uD83D\uDC9B',
+  sticker: 'Recibi tu sticker \uD83D\uDC9B Cuentame, como estas?',
   document: 'Recibi tu archivo pero no puedo abrirlo por aqui. Si necesitas algo, escribemelo y te ayudo \u2728',
-  location: 'Recibi tu ubicacion. Si necesitas algo, cuentame por texto y te ayudo \uD83D\uDDA4',
+  location: 'Recibi tu ubicacion. Si necesitas algo, cuentame por texto y te ayudo \uD83D\uDC9B',
 };
 
 function isMediaReply(replyType) {
@@ -251,7 +251,7 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
 
   // If no text message, ask for text
   if (!userMessage || userMessage.trim() === '') {
-    const fallback = 'Recibi tu mensaje pero no pude leer el contenido. Me lo escribes en texto? Asi puedo ayudarte mejor \uD83D\uDDA4';
+    const fallback = 'Recibi tu mensaje pero no pude leer el contenido. Me lo escribes en texto? Asi puedo ayudarte mejor \uD83D\uDC9B';
     await saveMessage(manychatId, 'user', '[mensaje sin texto]');
     await saveMessage(manychatId, 'assistant', fallback);
     await updateUser(manychatId, { phone });
