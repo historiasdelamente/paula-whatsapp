@@ -70,6 +70,18 @@ function isMediaReply(replyType) {
   return replyType && replyType !== 'text' && MEDIA_RESPONSES[replyType];
 }
 
+// Detect media URLs in message text (ManyChat sends S3 URLs for images/audio)
+function detectMediaInText(message) {
+  if (!message) return null;
+  if (message.match(/\.(jpg|jpeg|png|gif|webp|bmp)/i) || message.includes('manybot-files') && message.match(/\.(jpg|jpeg|png|gif|webp)/i)) return 'image';
+  if (message.match(/\.(ogg|mp3|wav|m4a|opus|aac)/i)) return 'audio';
+  if (message.match(/\.(mp4|mov|avi|webm)/i)) return 'video';
+  if (message.match(/\.(pdf|doc|docx|xls|xlsx)/i)) return 'document';
+  // Also detect raw S3/media URLs without clear extension
+  if (message.match(/^https?:\/\/.*manybot-files.*s3/i)) return 'image';
+  return null;
+}
+
 // --- Venezuela Detection ---
 
 function isVenezuela(phone) {
@@ -222,6 +234,16 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
   if (isMediaReply(replyType)) {
     const mediaResponse = MEDIA_RESPONSES[replyType];
     await saveMessage(manychatId, 'user', `[${replyType}]`);
+    await saveMessage(manychatId, 'assistant', mediaResponse);
+    await updateUser(manychatId, { phone });
+    return mediaResponse;
+  }
+
+  // Detect media URLs in text (ManyChat sends image/audio URLs as text)
+  const detectedMedia = detectMediaInText(userMessage);
+  if (detectedMedia && MEDIA_RESPONSES[detectedMedia]) {
+    const mediaResponse = MEDIA_RESPONSES[detectedMedia];
+    await saveMessage(manychatId, 'user', `[${detectedMedia}]`);
     await saveMessage(manychatId, 'assistant', mediaResponse);
     await updateUser(manychatId, { phone });
     return mediaResponse;
