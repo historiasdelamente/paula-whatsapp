@@ -1,5 +1,6 @@
 const http = require('http');
 const { processPaulaMessage } = require('./paula');
+const { runFollowUp } = require('./followup');
 
 const PORT = process.env.PORT || 3000;
 
@@ -69,6 +70,20 @@ const server = http.createServer(async (req, res) => {
         }));
       }
     });
+    return;
+  }
+
+  // Cron endpoint for follow-ups
+  if (req.method === 'GET' && req.url === '/cron/followup') {
+    try {
+      const result = await runFollowUp();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', ...result }));
+    } catch (error) {
+      console.error('[FollowUp Error]', error.message);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: error.message }));
+    }
     return;
   }
 
