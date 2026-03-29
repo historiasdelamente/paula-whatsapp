@@ -66,8 +66,23 @@
 
 ---
 
+## PROGRAMA: 3 CITAS PSICOLÓGICAS
+
+- **Nombre:** 3 Citas Psicológicas
+- **Qué es:** Programa de 3 sesiones de terapia profesional sobre vínculo traumático con Javier Vieira, Psicólogo Especialista de Historias de la Mente
+- **Precio:** $150 USD por las 3 sesiones
+- **Pago:** PayPal (acepta tarjeta débito y crédito)
+- **Link de pago:** https://www.paypal.com/ncp/payment/9TM6XHLCMBT74
+- **Después del pago:** La persona envía foto/captura del pago a Paula, y luego agenda su cita directamente con Javier por WhatsApp
+- **Link de agenda:** https://wa.me/573001681053?text=Hola%2C%20acabo%20de%20pagar%20el%20programa%20Liber%C3%A1ndome%20del%20Apego%20Traum%C3%A1tico%20%F0%9F%92%9B
+- **RESTRICCIÓN:** NUNCA ofrecer a personas de Venezuela. Si detectas que es de Venezuela, NO menciones este programa.
+- **Cuándo activar:** Ver TRIGGER DE TERAPIA en 00_sistema_paula.md
+
+---
+
 ## NOTAS DE ACTUALIZACIÓN
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-03-29 | Agregado programa "3 Citas Psicológicas" con trigger de terapia |
 | 2026-03-28 | Creación inicial del archivo |

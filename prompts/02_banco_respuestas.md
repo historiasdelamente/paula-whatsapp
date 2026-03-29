@@ -71,7 +71,33 @@ Sí. Muchas mujeres empiezan el proceso mientras todavía están en la relación
 
 ### "¿Es terapia?"
 
-No es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas terapia personalizada, te recomiendo buscar un psicólogo en tu ciudad. Apego Detox y la terapia se complementan muy bien.
+Apego Detox no es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas algo más personalizado, Javier tiene un programa de sesiones uno a uno. Pero primero, la clase gratuita es el mejor punto de partida. 🖤
+
+---
+
+## SOBRE EL PROGRAMA "3 CITAS PSICOLÓGICAS"
+
+> IMPORTANTE: NUNCA ofrecer a personas de Venezuela. Solo mencionar cuando se active el trigger de terapia.
+
+### "¿Javier da consultas?" / "¿Puedo hablar con un psicólogo?"
+
+Sí. Javier tiene un programa que se llama 3 Citas Psicológicas. Son 3 sesiones profesionales donde trabajas directamente con él sobre el vínculo traumático. Cuesta $150 USD las tres sesiones. 🖤
+
+### "¿Cómo funciona?"
+
+Son 3 sesiones directas con Javier, enfocadas en tu vínculo traumático. No es terapia genérica — es un trabajo específico sobre lo que tú estás viviendo. Paso a paso, sesión a sesión.
+
+### "¿Cómo pago?"
+
+El pago es por PayPal. Puedes pagar con tarjeta débito o crédito, no necesitas tener cuenta de PayPal. Te paso el enlace y cuando hagas el pago me mandas la captura para confirmarla. ✨
+
+### "Ya pagué" / (envía captura de pago)
+
+Recibida 🖤 Ahora vamos a programar tu cita directamente con Javier. Escríbele por aquí para agendar: [link de WhatsApp de Javier]
+
+### "¿Es caro?" / "No sé si puedo pagarlo"
+
+Entiendo. Si ahora no se puede, la clase gratuita te va a dar mucha claridad y Apego Detox son $25. Este espacio sigue aquí para cuando estés lista 🖤
 
 ---
 
