@@ -38,18 +38,25 @@ const server = http.createServer(async (req, res) => {
 
         const userId = data.user_id || data.subscriber_id;
         const userMessage = data.user_message || data.last_input_text || data.message;
+        const replyType = data.reply_type || 'text';
+        const phone = data.phone || '';
 
-        if (!userId || !userMessage) {
+        if (!userId) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Faltan campos: user_id y user_message' }));
+          res.end(JSON.stringify({ error: 'Falta campo: user_id' }));
           return;
         }
 
-        console.log(`[Paula] ${userId}: "${userMessage}"`);
+        console.log(`[Paula] ${userId} (${replyType}): "${userMessage || '[media]'}"`);
 
-        const paulaResponse = await processPaulaMessage(String(userId), String(userMessage));
+        const paulaResponse = await processPaulaMessage(
+          String(userId),
+          String(userMessage || ''),
+          String(replyType),
+          String(phone)
+        );
 
-        console.log(`[Paula] → "${paulaResponse.substring(0, 100)}..."`);
+        console.log(`[Paula] -> "${paulaResponse.substring(0, 100)}..."`);
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ bot_response: paulaResponse }));
@@ -58,7 +65,7 @@ const server = http.createServer(async (req, res) => {
         console.error('[Paula Error]', error.message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-          bot_response: 'En este momento no puedo responder. Escríbeme de nuevo en unos minutos 🖤',
+          bot_response: 'En este momento no puedo responder. Escribeme de nuevo en unos minutos \uD83D\uDDA4',
         }));
       }
     });
