@@ -77,31 +77,30 @@ async function runFollowUp() {
 
       if (!messages || messages.length === 0) continue;
 
-      // Check if we sent the class link
+      // Check if we already sent the class link
       const sentClassLink = messages.some(m =>
         m.message.type === 'ai' &&
         m.message.content.includes('historiasdelamente.com/clase-gratuita')
       );
 
-      if (!sentClassLink) continue;
+      // Solo follow-up a quienes NO recibieron el link
+      if (sentClassLink) continue;
+
+      // Must have had at least 2 messages (some conversation happened)
+      if (messages.length < 2) continue;
 
       // Find when the last message was
       const lastMsg = messages[0];
       const lastMsgTime = new Date(lastMsg.created_at || now);
       const hoursSinceLastMsg = (now - lastMsgTime) / (1000 * 60 * 60);
 
-      // Check if last message was from Paula (user hasn't responded)
-      const lastWasFromPaula = lastMsg.message.type === 'ai';
-
-      if (!lastWasFromPaula) continue; // User already responded, no need for follow-up
-
       const nombre = user.name || '';
 
-      // Follow-up 1: 24 hours after last interaction
-      if (hoursSinceLastMsg >= 24 && hoursSinceLastMsg < 48 && !user.followup_sent) {
+      // Follow-up: 4 horas despues de la ultima conversacion, si NO se envio el link
+      if (hoursSinceLastMsg >= 4 && !user.followup_sent) {
         const msg = nombre
-          ? `${nombre}, pudiste ver la clase de Javier? Me encantaria saber que te parecio 💛`
-          : `Hola! Pudiste ver la clase de Javier? Me encantaria saber que te parecio 💛`;
+          ? `${nombre}, me quede pensando en lo que me contaste. Todavia no te pase el enlace de la clase de Javier, te lo mando? 💛`
+          : `Hey, me quede pensando en lo que me contaste. Todavia no te pase el enlace de la clase de Javier, te lo mando? 💛`;
 
         await sendWhatsAppMessage(user.manychat_id, msg);
         await supabaseQuery(`wa_users?manychat_id=eq.${user.manychat_id}`, {
@@ -118,31 +117,7 @@ async function runFollowUp() {
           }),
         });
 
-        console.log(`[FollowUp] Enviado followup 1 a ${user.manychat_id} (${nombre})`);
-        sent++;
-      }
-
-      // Follow-up 2: 48 hours after last interaction
-      if (hoursSinceLastMsg >= 48 && user.followup_sent && !user.followup2_sent) {
-        const msg = nombre
-          ? `${nombre}, solo queria saber como estas. Este espacio sigue aqui cuando lo necesites ✨`
-          : `Solo queria saber como estas. Este espacio sigue aqui cuando lo necesites ✨`;
-
-        await sendWhatsAppMessage(user.manychat_id, msg);
-        await supabaseQuery(`wa_users?manychat_id=eq.${user.manychat_id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ followup2_sent: true }),
-        });
-
-        await supabaseQuery('whatsapp_memoria', {
-          method: 'POST',
-          body: JSON.stringify({
-            session_id: user.manychat_id,
-            message: { type: 'ai', content: msg, additional_kwargs: {}, response_metadata: {} },
-          }),
-        });
-
-        console.log(`[FollowUp] Enviado followup 2 a ${user.manychat_id} (${nombre})`);
+        console.log(`[FollowUp] Enviado a ${user.manychat_id} (${nombre})`);
         sent++;
       }
 
