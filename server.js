@@ -3,19 +3,108 @@ const { processPaulaMessage } = require('./paula');
 const { runFollowUp } = require('./followup');
 
 const PORT = process.env.PORT || 3000;
-const DEBOUNCE_MS = 5000;     // 5 segundos de silencio antes de procesar
-const POLL_INTERVAL = 500;    // revisar cada 500ms
-const MAX_WAIT_MS = 20000;    // timeout de seguridad: 20s máximo
+const DEBOUNCE_MS = 5000; // 5 segundos de silencio antes de procesar
 
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+// --- ManyChat API: enviar mensaje de vuelta ---
 
-// --- Message Buffer (in-memory) ---
-// Acumula mensajes de una misma usuaria antes de procesarlos
-// Map<userId, { messages: string[], lastTime: number, processing: boolean }>
+async function sendViaManyChat(subscriberId, text) {
+  const token = process.env.MANYCHAT_API_TOKEN;
+  if (!token) {
+    console.error('[Paula] MANYCHAT_API_TOKEN no configurado — no se puede enviar respuesta');
+    return;
+  }
+
+  // Dividir mensajes largos por línea en blanco (Paula envía hasta 2-3 mensajes)
+  const parts = text.split(/\n\n/).filter(p => p.trim());
+  const messages = parts.map(p => ({ type: 'text', text: p.trim() }));
+
+  const response = await fetch('https://api.manychat.com/fb/sending/sendContent', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subscriber_id: Number(subscriberId),
+      data: {
+        version: 'v2',
+        content: {
+          type: 'whatsapp',
+          messages,
+        },
+      },
+    }),
+  });
+
+  const data = await response.json();
+  if (data.status !== 'success') {
+    console.error('[Paula] ManyChat sendContent error:', JSON.stringify(data));
+  } else {
+    console.log(`[Paula] -> ManyChat OK (${messages.length} msg(s) enviados)`);
+  }
+  return data;
+}
+
+// --- Message Buffer (in-memory con setTimeout) ---
+// Map<userId, { messages: string[], timer: NodeJS.Timeout, replyType: string, phone: string }>
 const messageBuffer = new Map();
 
+function bufferMessage(userId, message, replyType, phone) {
+  const uid = String(userId);
+  const buffer = messageBuffer.get(uid);
+
+  if (buffer) {
+    // Ya hay un buffer activo — agregar mensaje y resetear timer
+    buffer.messages.push(message);
+    buffer.replyType = replyType;
+    buffer.phone = phone;
+    clearTimeout(buffer.timer);
+    buffer.timer = setTimeout(() => processBuffer(uid), DEBOUNCE_MS);
+    console.log(`[Paula] ${uid}: buffered (${buffer.messages.length} msgs acumulados)`);
+  } else {
+    // Primer mensaje — crear buffer y arrancar timer
+    const entry = {
+      messages: [message],
+      replyType,
+      phone,
+      timer: setTimeout(() => processBuffer(uid), DEBOUNCE_MS),
+    };
+    messageBuffer.set(uid, entry);
+    console.log(`[Paula] ${uid}: buffer iniciado, esperando ${DEBOUNCE_MS}ms...`);
+  }
+}
+
+async function processBuffer(userId) {
+  const buffer = messageBuffer.get(userId);
+  if (!buffer) return;
+
+  messageBuffer.delete(userId);
+
+  const combinedMessage = buffer.messages.join('\n');
+  console.log(`[Paula] ${userId}: procesando ${buffer.messages.length} msg(s) -> "${combinedMessage.substring(0, 120)}..."`);
+
+  try {
+    const paulaResponse = await processPaulaMessage(
+      userId, combinedMessage, buffer.replyType, buffer.phone
+    );
+
+    console.log(`[Paula] ${userId} -> "${paulaResponse.substring(0, 120)}..."`);
+
+    await sendViaManyChat(userId, paulaResponse);
+  } catch (error) {
+    console.error(`[Paula] Error procesando buffer de ${userId}:`, error.message);
+    // Intentar enviar mensaje de error a la usuaria
+    try {
+      await sendViaManyChat(userId, 'En este momento no puedo responder. Escribeme de nuevo en unos minutos \uD83D\uDDA4');
+    } catch (e) {
+      console.error('[Paula] Error enviando mensaje de error:', e.message);
+    }
+  }
+}
+
+// --- HTTP Server ---
+
 const server = http.createServer(async (req, res) => {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -32,6 +121,7 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       status: 'ok',
       agent: 'Paula - Historias de la Mente',
+      mode: 'async',
       buffer: `${DEBOUNCE_MS}ms debounce`,
       timestamp: new Date().toISOString(),
     }));
@@ -41,7 +131,6 @@ const server = http.createServer(async (req, res) => {
   // Webhook endpoint for ManyChat
   if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
-
     req.on('data', chunk => { body += chunk; });
 
     req.on('end', async () => {
@@ -61,102 +150,33 @@ const server = http.createServer(async (req, res) => {
 
         console.log(`[Paula] ${userId} (${replyType}): "${userMessage || '[media]'}"`);
 
-        // Media messages bypass the buffer — respond immediately
+        // Media messages — procesar y responder via ManyChat API inmediatamente
         if (replyType !== 'text') {
-          const paulaResponse = await processPaulaMessage(
-            String(userId), String(userMessage || ''), String(replyType), String(phone)
-          );
-          console.log(`[Paula] -> "${paulaResponse.substring(0, 100)}..."`);
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ bot_response: paulaResponse }));
-          return;
-        }
-
-        // --- Buffer logic for text messages ---
-        const uid = String(userId);
-        const buffer = messageBuffer.get(uid);
-
-        if (buffer && !buffer.processing) {
-          // Buffer exists — add message, update timestamp, return empty
-          buffer.messages.push(String(userMessage || ''));
-          buffer.lastTime = Date.now();
-          buffer.replyType = String(replyType);
-          buffer.phone = String(phone);
-          console.log(`[Paula] ${uid}: buffered (${buffer.messages.length} msgs acumulados)`);
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ bot_response: '' }));
+
+          try {
+            const paulaResponse = await processPaulaMessage(
+              String(userId), String(userMessage || ''), String(replyType), String(phone)
+            );
+            await sendViaManyChat(String(userId), paulaResponse);
+          } catch (err) {
+            console.error('[Paula] Error procesando media:', err.message);
+          }
           return;
         }
 
-        // First message — create buffer and hold connection
-        messageBuffer.set(uid, {
-          messages: [String(userMessage || '')],
-          lastTime: Date.now(),
-          processing: false,
-          replyType: String(replyType),
-          phone: String(phone),
-        });
+        // Text messages — buffer con debounce
+        bufferMessage(String(userId), String(userMessage || ''), String(replyType), String(phone));
 
-        console.log(`[Paula] ${uid}: primera request, esperando debounce ${DEBOUNCE_MS}ms...`);
-        const startTime = Date.now();
-
-        // Polling: wait until debounce window passes
-        while (true) {
-          await sleep(POLL_INTERVAL);
-
-          const current = messageBuffer.get(uid);
-          if (!current || current.processing) {
-            // Buffer was consumed or is being processed
-            console.log(`[Paula] ${uid}: buffer ya consumido`);
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ bot_response: '' }));
-            return;
-          }
-
-          const elapsed = Date.now() - current.lastTime;
-
-          if (elapsed >= DEBOUNCE_MS) {
-            break; // Debounce cumplido
-          }
-
-          // Safety timeout
-          if (Date.now() - startTime > MAX_WAIT_MS) {
-            console.log(`[Paula] ${uid}: safety timeout alcanzado`);
-            break;
-          }
-        }
-
-        // Claim the buffer
-        const claimed = messageBuffer.get(uid);
-        if (!claimed || claimed.processing) {
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ bot_response: '' }));
-          return;
-        }
-
-        claimed.processing = true; // Mark as processing to prevent new claims
-        const combinedMessage = claimed.messages.join('\n');
-        const finalReplyType = claimed.replyType;
-        const finalPhone = claimed.phone;
-        messageBuffer.delete(uid); // Clean up
-
-        console.log(`[Paula] ${uid}: procesando ${claimed.messages.length} msg(s) -> "${combinedMessage.substring(0, 100)}..."`);
-
-        const paulaResponse = await processPaulaMessage(
-          uid, combinedMessage, finalReplyType, finalPhone
-        );
-
-        console.log(`[Paula] -> "${paulaResponse.substring(0, 100)}..."`);
-
+        // Responder vacío inmediatamente — la respuesta real llega via ManyChat API
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ bot_response: paulaResponse }));
+        res.end(JSON.stringify({ bot_response: '' }));
 
       } catch (error) {
         console.error('[Paula Error]', error.message);
         res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          bot_response: 'En este momento no puedo responder. Escribeme de nuevo en unos minutos \uD83D\uDDA4',
-        }));
+        res.end(JSON.stringify({ bot_response: '' }));
       }
     });
     return;
@@ -184,6 +204,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`[Paula] Servidor activo en puerto ${PORT}`);
   console.log(`[Paula] Modelo: ${process.env.PAULA_MODEL || 'openai/gpt-4.1-mini'}`);
+  console.log(`[Paula] Modo: ASYNC (webhook inmediato + ManyChat API callback)`);
   console.log(`[Paula] Buffer: ${DEBOUNCE_MS}ms debounce`);
   console.log(`[Paula] Webhook: POST /webhook`);
 });
