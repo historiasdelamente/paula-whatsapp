@@ -6,16 +6,17 @@
 
 ---
 
-## CLASE GRATUITA
+## CLASE GRATUITA EN VIVO
 
-- **Tipo:** Evergreen (siempre disponible)
+- **Tipo:** Clase EN VIVO (aún no se ha dado, es para registrarse)
 - **Nombre:** Clase gratuita sobre trauma bonding, apego ansioso y relaciones narcisistas
-- **Link de registro:** https://historiasdelamente.com/clase-gratuita
+- **Link:** https://historiasdelamente.com/clase-gratuita (es link de REGISTRO, NO de ver la clase)
 - **Instructor:** Javier Vieira, Psicólogo Especialista
-- **Formato:** En vivo
+- **Formato:** En vivo (se avisará fecha y hora después del registro)
 - **Duración:** Aproximadamente 1 hora
 - **Costo:** Gratuita, sin compromiso
 - **Qué cubre:** Trauma bonding (por qué tu cuerpo se engancha), apego ansioso (por qué necesitas su validación), ciclo narcisista (cómo funciona el patrón), primeros pasos para salir
+- **IMPORTANTE:** El link es para REGISTRARSE. La clase todavía no se da. Después de registrarse, recibirán la fecha y hora.
 
 ---
 
