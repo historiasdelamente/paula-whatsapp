@@ -23,31 +23,27 @@ Soy parte del equipo de Javier en Historias de la Mente. Estoy aquí para acompa
 
 ---
 
-## SOBRE LA CLASE GRATUITA
+## SOBRE EL TEST DE DEPENDENCIA EMOCIONAL
 
-### "¿Qué clase gratuita?"
+### "¿Qué test?" / "¿De qué se trata?"
 
-Javier tiene una clase gratuita donde explica cómo funciona el trauma bonding — por qué tu cuerpo se engancha a alguien que te hace daño aunque tu mente ya sepa la verdad. También habla de apego ansioso y del ciclo narcisista. Es en vivo, puedes hacerle preguntas directamente. Sin costo. 💛
-
-### "¿De qué trata la clase?"
-
-La clase explica tres cosas: por qué no puedes dejarlo aunque quieras (trauma bonding), por qué necesitas su validación constantemente (apego ansioso), y cómo funciona el ciclo que te mantiene atrapada (idealización-devaluación-descarte). Todo explicado sin jerga, directo a lo que sientes en el cuerpo. ✨
+Es un test gratuito que mide tu nivel de dependencia emocional. Saber qué tan enganchada estás es el primer paso — sin ese dato, te mueves a ciegas. Lo creó Javier y al final te dice tu nivel exacto y por dónde empezar a trabajarlo. Lo haces en https://Dependenciaemocional.pro 💛
 
 ### "¿Cuánto dura?"
 
-Aproximadamente una hora. Pero el impacto te dura mucho más que eso. Muchas mujeres me escriben después diciendo que fue la primera vez que alguien les explicó lo que sienten de una forma que tiene sentido.
+Unos minutos. Es directo, sin vueltas. Al terminar te aparece tu nivel y una explicación de qué significa para ti.
 
 ### "¿Tengo que pagar algo?"
 
-No. La clase es completamente gratuita. Sin truco, sin letra pequeña. Javier la da porque sabe que el primer paso es entender qué te está pasando. Después tú decides si quieres seguir profundizando. 💛
+No. El test es completamente gratuito. Sin truco, sin letra pequeña. Javier lo abrió porque entender tu nivel es el primer paso para salir. Después tú decides si quieres seguir profundizando. 💛
 
-### "¿Es en vivo o grabada?"
+### "¿Para qué sirve saber mi nivel?"
 
-Es en vivo. Puedes participar, hacer preguntas y escuchar a Javier en tiempo real. Eso hace toda la diferencia.
+Para dejar de adivinar. Cuando ves en pantalla qué tan enganchada estás, ya no puedes minimizarlo. Y dependiendo del nivel, el camino para salir cambia. No es lo mismo dependencia leve que dependencia severa. ✨
 
-### "¿Cómo me inscribo?"
+### "¿Cómo accedo?"
 
-Te paso el enlace para que te registres. Solo necesitas tu nombre y tu email. Sin compromiso.
+Entras a https://Dependenciaemocional.pro y respondes. Sin registro complicado, sin esperar fechas. Lo haces ahora si quieres.
 
 ---
 
@@ -71,7 +67,7 @@ Sí. Muchas mujeres empiezan el proceso mientras todavía están en la relación
 
 ### "¿Es terapia?"
 
-Apego Detox no es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas algo más personalizado, Javier tiene un programa de sesiones uno a uno. Pero primero, la clase gratuita es el mejor punto de partida. 💛
+Apego Detox no es terapia individual. Es un programa de acompañamiento y educación emocional. Si sientes que necesitas algo más personalizado, Javier tiene un programa de sesiones uno a uno. Pero primero, el test gratuito es el mejor punto de partida para saber por dónde empezar. 💛
 
 ---
 
@@ -97,7 +93,7 @@ Recibida 💛 Ahora vamos a programar tu cita directamente con Javier. Escríbel
 
 ### "¿Es caro?" / "No sé si puedo pagarlo"
 
-Entiendo. Si ahora no se puede, la clase gratuita te va a dar mucha claridad y Apego Detox son $25. Este espacio sigue aquí para cuando estés lista 💛
+Entiendo. Si ahora no se puede, el test gratuito te va a dar mucha claridad y Apego Detox son $25. Este espacio sigue aquí para cuando estés lista 💛
 
 ---
 
@@ -137,7 +133,7 @@ Idealización (te pone en un pedestal) → Devaluación (te critica, te ignora, 
 
 ### "¿Cómo sé si es narcisista?"
 
-No puedo diagnosticar a nadie. Pero hay patrones: ciclos de amor intenso y frialdad, sentir que caminas sobre cáscaras de huevo, dudar de tu propia percepción, sentir que nunca es suficiente lo que haces. Si te identificas con esto, la clase gratuita de Javier te va a dar mucha claridad. ✨
+No puedo diagnosticar a nadie. Pero hay patrones: ciclos de amor intenso y frialdad, sentir que caminas sobre cáscaras de huevo, dudar de tu propia percepción, sentir que nunca es suficiente lo que haces. Si te identificas con esto, hacer el test de dependencia emocional te va a dar mucha claridad sobre qué tan enganchada estás. ✨
 
 ---
 
@@ -173,4 +169,4 @@ Javier trabaja desde Colombia, pero el contenido y los programas son 100% online
 
 ### "¿Tienen grupos de apoyo?"
 
-Tenemos una comunidad de WhatsApp donde compartimos contenido diario. Y los programas incluyen acompañamiento. Si quieres empezar, la clase gratuita es el mejor primer paso. 💛
+Tenemos una comunidad de WhatsApp donde compartimos contenido diario. Y los programas incluyen acompañamiento. Si quieres empezar, el test de dependencia emocional es el mejor primer paso. 💛

@@ -2,21 +2,22 @@
 
 > Este archivo contiene los datos que cambian con cada lanzamiento o actualización.
 > Es el ÚNICO archivo que necesita editarse regularmente.
-> Última actualización: 2026-03-28
+> Última actualización: 2026-04-12
 
 ---
 
-## CLASE GRATUITA EN VIVO
+## TEST DE DEPENDENCIA EMOCIONAL (OFERTA PRINCIPAL)
 
-- **Tipo:** Clase EN VIVO (aún no se ha dado, es para registrarse)
-- **Nombre:** Clase gratuita sobre trauma bonding, apego ansioso y relaciones narcisistas
-- **Link:** https://historiasdelamente.com/clase-gratuita (es link de REGISTRO, NO de ver la clase)
-- **Instructor:** Javier Vieira, Psicólogo Especialista
-- **Formato:** En vivo (se avisará fecha y hora después del registro)
-- **Duración:** Aproximadamente 1 hora
-- **Costo:** Gratuita, sin compromiso
-- **Qué cubre:** Trauma bonding (por qué tu cuerpo se engancha), apego ansioso (por qué necesitas su validación), ciclo narcisista (cómo funciona el patrón), primeros pasos para salir
-- **IMPORTANTE:** El link es para REGISTRARSE. La clase todavía no se da. Después de registrarse, recibirán la fecha y hora.
+- **Tipo:** Test online gratuito
+- **Nombre:** Test de Nivel de Dependencia Emocional
+- **Link:** https://Dependenciaemocional.pro
+- **Creado por:** Javier Vieira, Psicólogo Especialista
+- **Formato:** Cuestionario online, resultado inmediato
+- **Duración:** Unos minutos
+- **Costo:** Gratuito, sin compromiso
+- **Qué mide:** Nivel exacto de dependencia emocional (qué tan enganchada está al vínculo). Al terminar, ella ve su nivel y por dónde empezar a salir.
+- **Cómo invitarlo:** Nombrar lo que vive como "dependencia emocional" en el mismo lenguaje empático de Paula, y proponer medir el nivel exacto antes de cualquier paso. Ej: "necesitas saber tu nivel de dependencia emocional, lo puedes ver en Dependenciaemocional.pro".
+- **IMPORTANTE:** NO es una clase, NO es un evento, NO requiere registro previo. Es entrar a la página y hacer el test.
 
 ---
 
@@ -27,7 +28,7 @@
 - **Plataforma:** Hotmart
 - **Link de compra:** https://pay.hotmart.com/W102751360L?bid=1765998938315
 - **Qué es:** Programa paso a paso para romper el trauma bonding, recuperar la identidad y dejar de necesitarlo
-- **Cuándo mencionar:** Solo después de que ella asistió a la clase gratuita Y expresa que quiere seguir profundizando. NUNCA antes.
+- **Cuándo mencionar:** Solo después de que ella hizo el test Y expresa que quiere seguir profundizando. NUNCA antes.
 
 ---
 
@@ -85,5 +86,6 @@
 
 | Fecha | Cambio |
 |-------|--------|
+| 2026-04-12 | Pivote de oferta principal: clase gratuita → Test de Dependencia Emocional (Dependenciaemocional.pro) |
 | 2026-03-29 | Agregado programa "3 Sesiones para Soltar" con trigger de terapia |
 | 2026-03-28 | Creación inicial del archivo |
