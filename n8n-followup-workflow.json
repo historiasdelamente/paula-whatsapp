@@ -1,0 +1,35 @@
+{
+  "name": "Paula Follow-Up Cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "hours", "hoursInterval": 6 }
+          ]
+        }
+      },
+      "name": "Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.PAULA_URL || 'http://localhost:3000'}}/cron/followup",
+        "options": { "timeout": 30000 }
+      },
+      "name": "Trigger Follow-Up",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [470, 300]
+    }
+  ],
+  "connections": {
+    "Every 6 Hours": {
+      "main": [
+        [{ "node": "Trigger Follow-Up", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

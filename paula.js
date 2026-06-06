@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { withRetry, fetchWithTimeout } = require('./utils');
 
 // --- Supabase Config ---
 
@@ -22,9 +23,10 @@ async function supabaseQuery(endpoint, options = {}) {
   if (options.method === 'POST') {
     headers['Prefer'] = 'return=representation';
   }
-  const response = await fetch(`${url}/rest/v1/${endpoint}`, {
+  const response = await fetchWithTimeout(`${url}/rest/v1/${endpoint}`, {
     ...options,
     headers: { ...headers, ...options.headers },
+    timeoutMs: 8000,
   });
   if (!response.ok) {
     const error = await response.text();
@@ -93,20 +95,22 @@ function isVenezuela(phone) {
 // --- Database Operations (Supabase) ---
 
 async function getOrCreateUser(manychatId) {
-  const users = await supabaseQuery(`wa_users?manychat_id=eq.${manychatId}&limit=1`);
-  if (users && users.length > 0) return users[0];
-  const now = new Date().toISOString();
-  const newUsers = await supabaseQuery('wa_users', {
-    method: 'POST',
-    body: JSON.stringify({
-      manychat_id: manychatId,
-      funnel_stage: 'new_lead',
-      first_contact: now,
-      last_interaction: now,
-      conversation_count: 0,
-    }),
-  });
-  return newUsers && newUsers[0];
+  return withRetry(async () => {
+    const users = await supabaseQuery(`wa_users?manychat_id=eq.${manychatId}&limit=1`);
+    if (users && users.length > 0) return users[0];
+    const now = new Date().toISOString();
+    const newUsers = await supabaseQuery('wa_users', {
+      method: 'POST',
+      body: JSON.stringify({
+        manychat_id: manychatId,
+        funnel_stage: 'new_lead',
+        first_contact: now,
+        last_interaction: now,
+        conversation_count: 0,
+      }),
+    });
+    return newUsers && newUsers[0];
+  }, { maxRetries: 2, label: 'getOrCreateUser' });
 }
 
 async function getConversationHistory(manychatId, limit = 20) {
@@ -151,6 +155,8 @@ function buildSystemPrompt(user, phone) {
   const banco = loadPrompt('02_banco_respuestas.md');
   const crisis = loadPrompt('03_protocolo_crisis.md');
   const config = loadPrompt('05_config_dinamica.md');
+  const libroNina = loadPrompt('06_libro_nina_callada.md');
+  const apegoDetox = loadPrompt('07_apego_detox.md');
   const userContext = buildUserContext(user, phone);
 
   return `${sistema}
@@ -169,6 +175,16 @@ ${config}
 
 # BANCO DE RESPUESTAS (FAQ)
 ${banco}
+
+---
+
+# BASE DE CONOCIMIENTO -- PROGRAMA ESTRELLA "APEGO DETOX"
+${apegoDetox}
+
+---
+
+# BASE DE CONOCIMIENTO -- LIBRO "LA NINA QUE APRENDIO A QUEDARSE CALLADA"
+${libroNina}
 
 ---
 
@@ -200,28 +216,31 @@ function buildUserContext(user, phone) {
 async function callOpenRouter(systemPrompt, messages) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) throw new Error('OPENROUTER_API_KEY no esta configurada');
-  const model = process.env.PAULA_MODEL || 'openai/gpt-4.1-mini';
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://historiasdelamente.com',
-      'X-Title': 'Paula - Historias de la Mente',
-    },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-      max_tokens: 1024,
-      temperature: 0.7,
-    }),
-  });
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenRouter error (${response.status}): ${error}`);
-  }
-  const data = await response.json();
-  return data.choices[0]?.message?.content || '';
+  const model = process.env.PAULA_MODEL || 'openai/gpt-4.1';
+  return withRetry(async () => {
+    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://historiasdelamente.com',
+        'X-Title': 'Paula - Historias de la Mente',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'system', content: systemPrompt }, ...messages],
+        max_tokens: 1024,
+        temperature: 0.7,
+      }),
+      timeoutMs: 30000,
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenRouter error (${response.status}): ${error}`);
+    }
+    const data = await response.json();
+    return data.choices[0]?.message?.content || '';
+  }, { maxRetries: 2, baseDelay: 2000, label: 'callOpenRouter' });
 }
 
 // --- Main Entry Point ---
@@ -269,4 +288,53 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
   return paulaResponse;
 }
 
-module.exports = { processPaulaMessage };
+// --- MarketingDetox Bridge ---
+
+async function getPersonalizedRecommendations(user, detectedTopics) {
+  const marketingUrl = process.env.MARKETING_DETOX_URL;
+  const apiKey = process.env.MARKETING_DETOX_API_KEY;
+  if (!marketingUrl || !apiKey) return null;
+
+  try {
+    const response = await fetchWithTimeout(`${marketingUrl}/api/paula/recommend`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+      },
+      body: JSON.stringify({
+        user_profile: {
+          manychat_id: user.manychat_id,
+          name: user.name,
+          funnel_stage: user.funnel_stage,
+          conversation_count: user.conversation_count,
+          situacion_resumen: user.situacion_resumen,
+          detected_topics: detectedTopics,
+        },
+        detected_topics: detectedTopics,
+      }),
+      timeoutMs: 5000,
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.recommendations || null;
+  } catch {
+    return null;
+  }
+}
+
+// Simple topic detection from conversation
+function detectTopics(message) {
+  const topics = [];
+  const text = message.toLowerCase();
+  if (text.match(/narcis|narc|manipula|gasligh/)) topics.push('narcisismo');
+  if (text.match(/apego|aferra|depen|no puedo dejarlo/)) topics.push('apego');
+  if (text.match(/trauma|bond|adicci|regresar|volver con/)) topics.push('trauma_bonding');
+  if (text.match(/ni[ñn]a interior|infancia|mama|papa|herida/)) topics.push('nina_interior');
+  if (text.match(/sanar|salir|superar|recuperar|nueva vida/)) topics.push('sanacion');
+  if (text.match(/crisis|no puedo mas|quiero morir|auxilio/)) topics.push('crisis');
+  return topics;
+}
+
+module.exports = { processPaulaMessage, getPersonalizedRecommendations, detectTopics };

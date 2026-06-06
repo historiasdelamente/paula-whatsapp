@@ -1,6 +1,7 @@
 const http = require('http');
-const { processPaulaMessage } = require('./paula');
+const { processPaulaMessage, getPersonalizedRecommendations, detectTopics } = require('./paula');
 const { runFollowUp } = require('./followup');
+const { withRetry, fetchWithTimeout } = require('./utils');
 
 const PORT = process.env.PORT || 3000;
 const DEBOUNCE_MS = 5000; // 5 segundos de silencio antes de procesar
@@ -18,31 +19,33 @@ async function sendViaManyChat(subscriberId, text) {
   const parts = text.split(/\n\n/).filter(p => p.trim());
   const messages = parts.map(p => ({ type: 'text', text: p.trim() }));
 
-  const response = await fetch('https://api.manychat.com/fb/sending/sendContent', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      subscriber_id: Number(subscriberId),
-      data: {
-        version: 'v2',
-        content: {
-          type: 'whatsapp',
-          messages,
-        },
+  return withRetry(async () => {
+    const response = await fetchWithTimeout('https://api.manychat.com/fb/sending/sendContent', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    }),
-  });
+      body: JSON.stringify({
+        subscriber_id: Number(subscriberId),
+        data: {
+          version: 'v2',
+          content: {
+            type: 'whatsapp',
+            messages,
+          },
+        },
+      }),
+      timeoutMs: 10000,
+    });
 
-  const data = await response.json();
-  if (data.status !== 'success') {
-    console.error('[Paula] ManyChat sendContent error:', JSON.stringify(data));
-  } else {
+    const data = await response.json();
+    if (data.status !== 'success') {
+      throw new Error(`ManyChat sendContent error: ${JSON.stringify(data)}`);
+    }
     console.log(`[Paula] -> ManyChat OK (${messages.length} msg(s) enviados)`);
-  }
-  return data;
+    return data;
+  }, { maxRetries: 3, baseDelay: 1000, label: 'sendViaManyChat' });
 }
 
 // --- Message Buffer (in-memory con setTimeout) ---
@@ -203,7 +206,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`[Paula] Servidor activo en puerto ${PORT}`);
-  console.log(`[Paula] Modelo: ${process.env.PAULA_MODEL || 'openai/gpt-4.1-mini'}`);
+  console.log(`[Paula] Modelo: ${process.env.PAULA_MODEL || 'openai/gpt-4.1'}`);
   console.log(`[Paula] Modo: ASYNC (webhook inmediato + ManyChat API callback)`);
   console.log(`[Paula] Buffer: ${DEBOUNCE_MS}ms debounce`);
   console.log(`[Paula] Webhook: POST /webhook`);
