@@ -29,6 +29,46 @@ function stripLeadTag(text) {
   return (text || '').replace(LEAD_TAG_RE, '').replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// Red de seguridad: extraer correo del mensaje de la usuaria (no depende del LLM).
+function extractEmail(text) {
+  if (!text) return null;
+  const m = String(text).match(/[^\s@]+@[^\s@]+\.[^\s@]{2,}/);
+  return m ? m[0].trim().toLowerCase() : null;
+}
+
+// Heurística conservadora de nombre (solo si la IA aún no marcó el nombre).
+// Acepta 1-3 palabras alfabéticas; descarta saludos/keywords comunes.
+const NOMBRE_STOP = new Set([
+  'hola', 'holi', 'buenas', 'buenos', 'si', 'sí', 'no', 'ok', 'okey', 'okay',
+  'vale', 'claro', 'gracias', 'quiero', 'libro', 'ayuda', 'info', 'informacion',
+  'información', 'dale', 'listo', 'bueno', 'bien', 'mal', 'hey', 'que', 'qué',
+  'como', 'cómo', 'tu', 'tú', 'curso', 'grupo', 'correo',
+]);
+function guessName(text) {
+  if (!text) return null;
+  const t = String(text).trim();
+  if (!t || t.includes('@')) return null;
+  if (!/^[a-zà-ÿñ' .-]{2,40}$/i.test(t)) return null;
+  const words = t.split(/\s+/).filter(Boolean);
+  if (words.length < 1 || words.length > 3) return null;
+  if (words.some((w) => NOMBRE_STOP.has(w.toLowerCase()))) return null;
+  return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+}
+
+// Dispara el embudo una sola vez y marca el candado anti-duplicado.
+async function dispararCaptura(manychatId, user, nombre, email) {
+  await withRetry(
+    () => enviarLeadCaptura({ nombre, email, origen: user.origen }),
+    { maxRetries: 2, baseDelay: 2000, label: 'enviarLeadCaptura' }
+  );
+  await updateUser(manychatId, { name: nombre, funnel_stage: 'libro_enviado' });
+  user.funnel_stage = 'libro_enviado';
+  user.name = nombre;
+  // best-effort: si la columna 'email' no existe, no rompe el flujo.
+  try { await updateUser(manychatId, { email }); }
+  catch (e) { console.warn('[Paula] correo no persistido (columna email?):', e.message); }
+}
+
 async function enviarLeadCaptura({ nombre, email, origen }) {
   const baseUrl = process.env.WEB_BASE_URL || 'https://historiasdelamente.com';
   const response = await fetchWithTimeout(`${baseUrl}/api/leads/capture`, {
@@ -332,32 +372,38 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
   }
 
   const user = await getOrCreateUser(manychatId);
+
+  // --- Red de seguridad determinista (ANTES del LLM) ---
+  // Captura nombre (heurística) y correo (regex) directo del mensaje de la usuaria.
+  // Si tenemos ambos y aún no se envió el libro, dispara el embudo sin depender de
+  // que el modelo emita la marca [[LEAD]]. El candado funnel_stage evita duplicados.
+  if (user.funnel_stage !== 'libro_enviado') {
+    if (!user.name) {
+      const maybe = guessName(userMessage);
+      if (maybe) {
+        try { await updateUser(manychatId, { name: maybe }); user.name = maybe; }
+        catch (e) { /* columna name siempre existe; ignorar transitorios */ }
+      }
+    }
+    const emailUsuaria = extractEmail(userMessage);
+    if (emailUsuaria && user.name) {
+      try { await dispararCaptura(manychatId, user, user.name, emailUsuaria); }
+      catch (err) { console.error('[Paula] captura determinista fallo:', err.message); }
+    }
+  }
+
   const history = await getConversationHistory(manychatId, 20);
   const systemPrompt = buildSystemPrompt(user, phone);
   const messages = [...history, { role: 'user', content: userMessage }];
   let paulaResponse = await callOpenRouter(systemPrompt, messages);
 
-  // --- Captura de lead + disparo del embudo (determinista) ---
-  // Si la IA marco [[LEAD: ...]] y aun no se ha enviado el libro, disparamos el
-  // endpoint del sitio. funnel_stage='libro_enviado' (columna existente) hace de
-  // candado anti-duplicado. La marca se borra SIEMPRE antes de responder.
+  // --- Captura por marca [[LEAD]] (secundaria, por si la heurística no la tomó) ---
+  // La marca se borra SIEMPRE antes de responder (nunca la ve la usuaria).
   if (user.funnel_stage !== 'libro_enviado') {
     const lead = parseLeadTag(paulaResponse);
     if (lead) {
-      try {
-        await withRetry(
-          () => enviarLeadCaptura({ nombre: lead.nombre, email: lead.email, origen: user.origen }),
-          { maxRetries: 2, baseDelay: 2000, label: 'enviarLeadCaptura' }
-        );
-        // Candado anti-duplicado en columnas que sabemos existen.
-        await updateUser(manychatId, { name: lead.nombre, funnel_stage: 'libro_enviado' });
-        user.funnel_stage = 'libro_enviado';
-        // El correo es best-effort: si la columna 'email' no existe, no rompe el flujo.
-        try { await updateUser(manychatId, { email: lead.email }); }
-        catch (e) { console.warn('[Paula] correo no persistido (columna email?):', e.message); }
-      } catch (err) {
-        console.error('[Paula] captura de lead fallo:', err.message);
-      }
+      try { await dispararCaptura(manychatId, user, lead.nombre, lead.email); }
+      catch (err) { console.error('[Paula] captura por marca fallo:', err.message); }
     }
   }
 
