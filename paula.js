@@ -2,6 +2,55 @@ const fs = require('fs');
 const path = require('path');
 const { withRetry, fetchWithTimeout } = require('./utils');
 
+// --- Captura de lead -> embudo desing_web (/api/leads/capture) ---
+// Paula NO manda el correo ni el PDF: solo dispara el endpoint publico del sitio,
+// que agrega el contacto a Resend, manda el correo 1 (libro + grupo) y programa
+// la secuencia. Paula entrega los links del grupo y el curso en el chat (04_flujos).
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+// La IA marca AL FINAL de su mensaje, cuando ya tiene nombre + correo valido:
+//   [[LEAD: nombre=Luisa | email=luisa@correo.com]]
+// paula.js lo detecta, dispara el embudo y BORRA la marca antes de responder.
+const LEAD_TAG_RE = /\[\[\s*LEAD:\s*nombre\s*=\s*([^|\]]+?)\s*\|\s*email\s*=\s*([^\]]+?)\s*\]\]/i;
+
+function parseLeadTag(text) {
+  if (!text) return null;
+  const m = text.match(LEAD_TAG_RE);
+  if (!m) return null;
+  const nombre = m[1].trim();
+  const email = m[2].trim().toLowerCase();
+  if (!nombre || nombre.length < 2 || nombre.length > 80) return null;
+  if (!EMAIL_RE.test(email) || email.length > 200) return null;
+  return { nombre, email };
+}
+
+function stripLeadTag(text) {
+  return (text || '').replace(LEAD_TAG_RE, '').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function enviarLeadCaptura({ nombre, email, origen }) {
+  const baseUrl = process.env.WEB_BASE_URL || 'https://historiasdelamente.com';
+  const response = await fetchWithTimeout(`${baseUrl}/api/leads/capture`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      nombre,
+      utmSource: origen || 'whatsapp',
+      utmMedium: 'paula',
+      utmCampaign: 'clase_libro_funnel',
+      utmContent: 'paula_bot',
+    }),
+    timeoutMs: 12000,
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`leads/capture (${response.status}): ${err.slice(0, 200)}`);
+  }
+  return response.json();
+}
+
 // --- Supabase Config ---
 
 function getSupabaseConfig() {
@@ -141,7 +190,13 @@ async function saveMessage(manychatId, role, message) {
 
 async function updateUser(manychatId, updates) {
   const fields = { last_interaction: new Date().toISOString() };
-  if (updates && updates.phone) fields.phone = updates.phone;
+  if (updates) {
+    if (updates.phone) fields.phone = updates.phone;
+    if (updates.name) fields.name = updates.name;
+    if (updates.email) fields.email = updates.email;
+    if (updates.funnel_stage) fields.funnel_stage = updates.funnel_stage;
+    if (updates.origen) fields.origen = updates.origen;
+  }
   await supabaseQuery(`wa_users?manychat_id=eq.${manychatId}`, {
     method: 'PATCH',
     body: JSON.stringify(fields),
@@ -151,12 +206,13 @@ async function updateUser(manychatId, updates) {
 // --- Prompt Assembly ---
 
 function buildSystemPrompt(user, phone) {
+  // Flujo nuevo (capturar nombre+correo -> entregar libro/grupo/curso): se cargan
+  // solo sistema + flujo + config + contexto + crisis. El banco/libro-nina/apego-detox
+  // del flujo viejo de venta ya NO se cargan.
   const sistema = loadPrompt('00_sistema_paula.md');
-  const banco = loadPrompt('02_banco_respuestas.md');
-  const crisis = loadPrompt('03_protocolo_crisis.md');
+  const flujos = loadPrompt('04_flujos_conversacion.md');
   const config = loadPrompt('05_config_dinamica.md');
-  const libroNina = loadPrompt('06_libro_nina_callada.md');
-  const apegoDetox = loadPrompt('07_apego_detox.md');
+  const crisis = loadPrompt('03_protocolo_crisis.md');
   const userContext = buildUserContext(user, phone);
 
   return `${sistema}
@@ -168,23 +224,13 @@ ${userContext}
 
 ---
 
-# CONFIGURACION ACTUAL
+# FLUJO DE CONVERSACION (SEGUIR PASO A PASO)
+${flujos}
+
+---
+
+# CONFIGURACION (LINKS Y DATOS)
 ${config}
-
----
-
-# BANCO DE RESPUESTAS (FAQ)
-${banco}
-
----
-
-# BASE DE CONOCIMIENTO -- PROGRAMA ESTRELLA "APEGO DETOX"
-${apegoDetox}
-
----
-
-# BASE DE CONOCIMIENTO -- LIBRO "LA NINA QUE APRENDIO A QUEDARSE CALLADA"
-${libroNina}
 
 ---
 
@@ -197,11 +243,19 @@ function buildUserContext(user, phone) {
   if (user.name) {
     lines.push(`- Nombre: ${user.name}`);
   } else {
-    lines.push('- Nombre: NO LO SABEMOS TODAVIA -- preguntarlo');
+    lines.push('- Nombre: NO LO SABEMOS TODAVIA -- preguntarlo (Paso 1)');
   }
-  lines.push(`- Etapa del funnel: ${user.funnel_stage}`);
+  if (user.email) {
+    lines.push(`- Correo: ${user.email}`);
+  } else {
+    lines.push('- Correo: NO LO TENEMOS TODAVIA -- pedirlo (Paso 2)');
+  }
+  if (user.funnel_stage === 'libro_enviado') {
+    lines.push('- LIBRO/EMBUDO YA ENVIADO: SI. NO volver a pedir nombre ni correo, NO repetir la marca [[LEAD]]. Solo acompanar y, si pregunta, reenviar el link del grupo o del curso.');
+  } else {
+    lines.push('- Libro/embudo enviado: NO -- objetivo: capturar nombre + correo y emitir [[LEAD: ...]]');
+  }
   lines.push(`- Mensajes intercambiados: ${user.conversation_count}`);
-  lines.push(`- Primer contacto: ${user.first_contact}`);
   if (user.situacion_resumen) {
     lines.push(`- Resumen de su situacion: ${user.situacion_resumen}`);
   }
@@ -281,7 +335,34 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
   const history = await getConversationHistory(manychatId, 20);
   const systemPrompt = buildSystemPrompt(user, phone);
   const messages = [...history, { role: 'user', content: userMessage }];
-  const paulaResponse = await callOpenRouter(systemPrompt, messages);
+  let paulaResponse = await callOpenRouter(systemPrompt, messages);
+
+  // --- Captura de lead + disparo del embudo (determinista) ---
+  // Si la IA marco [[LEAD: ...]] y aun no se ha enviado el libro, disparamos el
+  // endpoint del sitio. funnel_stage='libro_enviado' (columna existente) hace de
+  // candado anti-duplicado. La marca se borra SIEMPRE antes de responder.
+  if (user.funnel_stage !== 'libro_enviado') {
+    const lead = parseLeadTag(paulaResponse);
+    if (lead) {
+      try {
+        await withRetry(
+          () => enviarLeadCaptura({ nombre: lead.nombre, email: lead.email, origen: user.origen }),
+          { maxRetries: 2, baseDelay: 2000, label: 'enviarLeadCaptura' }
+        );
+        // Candado anti-duplicado en columnas que sabemos existen.
+        await updateUser(manychatId, { name: lead.nombre, funnel_stage: 'libro_enviado' });
+        user.funnel_stage = 'libro_enviado';
+        // El correo es best-effort: si la columna 'email' no existe, no rompe el flujo.
+        try { await updateUser(manychatId, { email: lead.email }); }
+        catch (e) { console.warn('[Paula] correo no persistido (columna email?):', e.message); }
+      } catch (err) {
+        console.error('[Paula] captura de lead fallo:', err.message);
+      }
+    }
+  }
+
+  paulaResponse = stripLeadTag(paulaResponse);
+
   await saveMessage(manychatId, 'user', userMessage);
   await saveMessage(manychatId, 'assistant', paulaResponse);
   await updateUser(manychatId, { phone });
