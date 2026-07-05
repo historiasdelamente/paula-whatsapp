@@ -113,28 +113,103 @@ function cap(s) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-// Recordatorio 1 (≥4h): retomar el hilo. Si ya tiene el link, preguntar qué la frena.
+// --- Copys FIJOS (fallback si el generador LLM falla) ---
+// Regla: todo recordatorio VENDE — siempre lleva link y pregunta de decisión.
+
 function copyRecordatorio1(nombre, linkYaEnviado) {
   const n = saludo(nombre);
   if (linkYaEnviado) {
     return cap(pick([
-      `${n}soy Paula 💛 ¿Pudiste ver lo de Apego Detox? Te lo mandé porque encaja exacto con lo que me contaste.\n\nSi algo te frena, dímelo y lo resolvemos juntas. ¿Qué es lo que más te detiene?`,
-      `${n}me quedé pensando en ti 💛 El programa que te mandé trabaja justo eso que me contaste — no es consuelo, es proceso.\n\n¿Qué te detuvo? Cuéntame y lo vemos sin presión.`,
+      `${n}soy Paula 💛 Lo que me contaste tiene tratamiento, y es el programa que te mandé. Cuando decidas entrar, este es el link: ${CHECKOUT_URL}\n\nTienes 7 días de garantía total: entras, lo ves por dentro y decides. ¿Qué es lo que te detiene hoy?`,
+      `${n}me quedé pensando en ti 💛 El programa que te mandé trabaja justo eso que me contaste — no es consuelo, es proceso. Entras aquí: ${CHECKOUT_URL}\n\nSi algo te frena, dímelo y lo resolvemos ya mismo. ¿Es el dinero, el tiempo o el miedo a que no funcione?`,
     ], nombre + '1'));
   }
   return cap(pick([
-    `${n}soy Paula 💛 Me quedé pensando en lo que me contaste. Eso que vives tiene nombre y tiene salida — y no es a punta de fuerza de voluntad.\n\nJavier creó un programa exacto para esto. Míralo con calma: ${LANDING_URL} ¿Te cuento cómo funciona?`,
-    `${n}te escribo porque lo que me contaste no se me olvidó 💛 No estás rota: tu sistema quedó enganchado, y eso se reentrena.\n\nEste es el proceso de Javier para salir de ahí: ${LANDING_URL} ¿Quieres que te cuente cómo es por dentro?`,
+    `${n}soy Paula 💛 Eso que me contaste tiene nombre y tiene salida — y no es a punta de fuerza de voluntad. Javier creó Apego Detox exacto para esto: ${LANDING_URL}\n\nSon $37.97 al mes, con 7 días de garantía total. ¿Empezamos hoy?`,
+    `${n}te escribo porque lo que me contaste no se me olvidó 💛 No estás rota: tu sistema quedó enganchado, y eso se reentrena con proceso. Míralo aquí: ${LANDING_URL}\n\nCancelas cuando quieras y tienes 7 días de garantía. ¿Te animas a entrar hoy? ✨`,
   ], nombre + '1'));
 }
 
-// Recordatorio 2 (≥16h): ancla honesta — clase en vivo + garantía + link de pago.
 function copyRecordatorio2(nombre) {
   const n = saludo(nombre);
   return cap(pick([
-    `${n}esta semana hay clase en vivo con Javier (martes y jueves, 8 pm hora Colombia). Si entras hoy, llegas con acceso a todo: ${CHECKOUT_URL}\n\nSon $37.97 al mes, cancelas cuando quieras y tienes 7 días de garantía total. Un mes de proceso puede ser el primer mes en años que tu cabeza descansa 💛`,
-    `${n}no te escribo para presionarte — te escribo porque sé cómo pesa cada semana más dentro del bucle 💛 La próxima clase en vivo con Javier es martes y jueves a las 8 pm (Colombia).\n\nEntras aquí, con 7 días de garantía y cancelas cuando quieras: ${CHECKOUT_URL} ✨`,
+    `${n}esta semana hay clase en vivo con Javier (martes y jueves, 8 pm hora Colombia). Si entras hoy, llegas con acceso a todo: ${CHECKOUT_URL}\n\nSon $37.97 al mes, cancelas cuando quieras y tienes 7 días de garantía total. ¿Te guardo el cupo de hoy? 💛`,
+    `${n}no te escribo para presionarte — te escribo porque sé cómo pesa cada semana más dentro del bucle 💛 La próxima clase en vivo con Javier es martes y jueves a las 8 pm (Colombia).\n\nEntras aquí, con 7 días de garantía y cancelas cuando quieras: ${CHECKOUT_URL} ¿Entras hoy? ✨`,
   ], nombre + '2'));
+}
+
+// --- Generador INTELIGENTE (LLM): recordatorio personalizado al dolor de ELLA ---
+// Lee el historial real y escribe un recordatorio de VENTA a su medida.
+// Si falla o devuelve algo inválido, cae al copy fijo.
+
+async function generarRecordatorioLLM(user, messages, toque, linkYaEnviado) {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) return null;
+
+  const linkRequerido = toque === 2 || linkYaEnviado ? CHECKOUT_URL : LANDING_URL;
+
+  const historial = messages
+    .slice(0, 10)
+    .reverse()
+    .map(m => `${m.message.type === 'human' ? 'ELLA' : 'PAULA'}: ${m.message.content}`)
+    .join('\n');
+
+  const objetivo = toque === 1
+    ? `TOQUE 1 (lleva ~4h en silencio): retoma SU dolor exacto (usa sus palabras del historial, no frases genéricas), preséntale Apego Detox como el tratamiento para ESO, entrega este link UNA vez: ${linkRequerido} y cierra con UNA pregunta de decisión.`
+    : `TOQUE 2 (lleva ~16h en silencio, último toque): cierre directo. Su dolor en una frase, el link de pago UNA vez: ${linkRequerido}, la clase en vivo con Javier (martes y jueves 8 pm hora Colombia), la garantía de 7 días, y UNA pregunta de decisión que invite a entrar HOY.`;
+
+  const sys = `Eres Paula, asesora de Apego Detox del equipo de Javier Vieira, Psicólogo Especialista. Escribes UN mensaje de seguimiento de VENTA por WhatsApp/Instagram para una mujer que dejó de responder. Tu único objetivo es acercarla HOY a comprar Apego Detox ($37.97 USD al mes, suscripción mensual, cancela cuando quiera, garantía total de 7 días, 15 módulos, clases en vivo con Javier martes y jueves 8 pm hora Colombia).
+
+${objetivo}
+
+REGLAS DURAS:
+- Máximo 2 globos separados por UNA línea en blanco, ~250 caracteres por globo.
+- El link va UNA sola vez, completo y sin modificar.
+- Texto plano de WhatsApp: sin markdown, sin listas. Emojis solo 💛 y ✨ (máximo 1 por globo).
+- PROHIBIDO: "oferta", "descuento", "cupos limitados", "última oportunidad", "pago único", reprocharle el silencio ("vi que no respondiste"), decir que es un mensaje automático, diagnosticar, prometer cura.
+- Tono: hermana mayor con criterio clínico. Cálida, directa, sutil y firme. Nunca de feria, nunca rogando.
+- Si el nombre de ella aparece en el contexto, úsalo una vez.
+- Si en el historial hay señales de crisis (suicidio, autolesión, violencia física), responde EXACTAMENTE: NO_ENVIAR
+
+Responde SOLO con el mensaje final (o NO_ENVIAR). Nada de explicaciones.`;
+
+  const contexto = `Nombre de ella: ${user.name || 'desconocido'}\n\nHISTORIAL RECIENTE:\n${historial}`;
+
+  try {
+    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://historiasdelamente.com',
+        'X-Title': 'Paula - Recordatorios',
+      },
+      body: JSON.stringify({
+        model: process.env.PAULA_MODEL || 'openai/gpt-4.1',
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: contexto },
+        ],
+        max_tokens: 320,
+        temperature: 0.7,
+      }),
+      timeoutMs: 30000,
+    });
+    if (!response.ok) return null;
+    const data = await response.json();
+    let texto = (data.choices?.[0]?.message?.content || '').trim();
+
+    // Validación dura: si no cumple, se usa el copy fijo.
+    if (!texto) return null;
+    if (texto.includes('NO_ENVIAR')) return 'NO_ENVIAR';
+    texto = texto.replace(/\[\[[^\]]*\]\]/g, '').trim();
+    if (!texto.includes(linkRequerido)) return null;
+    if (texto.length > 900) return null;
+    if (/oferta|descuento|cupos|última oportunidad|ultima oportunidad|pago único|pago unico/i.test(texto)) return null;
+    return texto;
+  } catch {
+    return null;
+  }
 }
 
 async function runFollowUp() {
@@ -199,18 +274,28 @@ async function runFollowUp() {
         ((m.message.content || '').includes('apegodetox') || (m.message.content || '').includes('hotmart'))
       );
 
-      let msg = null;
+      let toque = null;
       let patch = null;
 
       if (!user.followup_sent && hoursSinceLastMsg >= 4) {
-        msg = copyRecordatorio1(user.name, linkYaEnviado);
+        toque = 1;
         patch = { followup_sent: true };
       } else if (user.followup_sent && !user.followup2_sent && hoursSinceLastMsg >= 16 && hoursSinceHuman >= 16) {
-        msg = copyRecordatorio2(user.name);
+        toque = 2;
         patch = { followup2_sent: true };
       }
 
-      if (!msg) continue;
+      if (!toque) continue;
+
+      // Recordatorio inteligente: personalizado al dolor de ELLA vía LLM;
+      // si el generador falla o devuelve algo inválido, copy fijo de venta.
+      let msg = await generarRecordatorioLLM(user, messages, toque, linkYaEnviado);
+      if (msg === 'NO_ENVIAR') continue; // el generador detectó crisis
+      if (!msg) {
+        msg = toque === 1
+          ? copyRecordatorio1(user.name, linkYaEnviado)
+          : copyRecordatorio2(user.name);
+      }
 
       // Marcar ANTES de enviar: si el PATCH falla no se envía nada (se
       // reintenta al próximo cron); si el envío falla tras marcar, se pierde
