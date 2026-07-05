@@ -1,19 +1,26 @@
 const http = require('http');
-const { processPaulaMessage, getPersonalizedRecommendations, detectTopics } = require('./paula');
+const { processPaulaMessage } = require('./paula');
 const { runFollowUp } = require('./followup');
 const { withRetry, fetchWithTimeout } = require('./utils');
 
 const PORT = process.env.PORT || 3000;
 const DEBOUNCE_MS = 5000; // 5 segundos de silencio antes de procesar
 
-// --- ManyChat API: enviar mensaje de vuelta ---
+// --- ManyChat API: enviar mensaje de vuelta (WhatsApp o Instagram) ---
 
-async function sendViaManyChat(subscriberId, text) {
+function normalizeCanal(canal) {
+  const c = String(canal || '').toLowerCase().trim();
+  return c === 'instagram' || c === 'ig' ? 'instagram' : 'whatsapp';
+}
+
+async function sendViaManyChat(subscriberId, text, canal) {
   const token = process.env.MANYCHAT_API_TOKEN;
   if (!token) {
     console.error('[Paula] MANYCHAT_API_TOKEN no configurado — no se puede enviar respuesta');
     return;
   }
+
+  const contentType = normalizeCanal(canal);
 
   // Dividir mensajes largos por línea en blanco (Paula envía hasta 2-3 mensajes)
   const parts = text.split(/\n\n/).filter(p => p.trim());
@@ -31,7 +38,7 @@ async function sendViaManyChat(subscriberId, text) {
         data: {
           version: 'v2',
           content: {
-            type: 'whatsapp',
+            type: contentType,
             messages,
           },
         },
@@ -43,16 +50,16 @@ async function sendViaManyChat(subscriberId, text) {
     if (data.status !== 'success') {
       throw new Error(`ManyChat sendContent error: ${JSON.stringify(data)}`);
     }
-    console.log(`[Paula] -> ManyChat OK (${messages.length} msg(s) enviados)`);
+    console.log(`[Paula] -> ManyChat OK (${messages.length} msg(s) via ${contentType})`);
     return data;
   }, { maxRetries: 3, baseDelay: 1000, label: 'sendViaManyChat' });
 }
 
 // --- Message Buffer (in-memory con setTimeout) ---
-// Map<userId, { messages: string[], timer: NodeJS.Timeout, replyType: string, phone: string }>
+// Map<userId, { messages, timer, replyType, phone, origen, canal }>
 const messageBuffer = new Map();
 
-function bufferMessage(userId, message, replyType, phone) {
+function bufferMessage(userId, message, replyType, phone, origen, canal) {
   const uid = String(userId);
   const buffer = messageBuffer.get(uid);
 
@@ -61,6 +68,8 @@ function bufferMessage(userId, message, replyType, phone) {
     buffer.messages.push(message);
     buffer.replyType = replyType;
     buffer.phone = phone;
+    buffer.origen = origen || buffer.origen;
+    buffer.canal = canal || buffer.canal;
     clearTimeout(buffer.timer);
     buffer.timer = setTimeout(() => processBuffer(uid), DEBOUNCE_MS);
     console.log(`[Paula] ${uid}: buffered (${buffer.messages.length} msgs acumulados)`);
@@ -70,6 +79,8 @@ function bufferMessage(userId, message, replyType, phone) {
       messages: [message],
       replyType,
       phone,
+      origen,
+      canal,
       timer: setTimeout(() => processBuffer(uid), DEBOUNCE_MS),
     };
     messageBuffer.set(uid, entry);
@@ -88,17 +99,17 @@ async function processBuffer(userId) {
 
   try {
     const paulaResponse = await processPaulaMessage(
-      userId, combinedMessage, buffer.replyType, buffer.phone
+      userId, combinedMessage, buffer.replyType, buffer.phone, buffer.origen, buffer.canal
     );
 
     console.log(`[Paula] ${userId} -> "${paulaResponse.substring(0, 120)}..."`);
 
-    await sendViaManyChat(userId, paulaResponse);
+    await sendViaManyChat(userId, paulaResponse, buffer.canal);
   } catch (error) {
     console.error(`[Paula] Error procesando buffer de ${userId}:`, error.message);
     // Intentar enviar mensaje de error a la usuaria
     try {
-      await sendViaManyChat(userId, 'En este momento no puedo responder. Escribeme de nuevo en unos minutos \uD83D\uDDA4');
+      await sendViaManyChat(userId, 'En este momento no puedo responder. Escribeme de nuevo en unos minutos 💛', buffer.canal);
     } catch (e) {
       console.error('[Paula] Error enviando mensaje de error:', e.message);
     }
@@ -124,6 +135,7 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       status: 'ok',
       agent: 'Paula - Historias de la Mente',
+      objetivo: 'venta Apego Detox',
       mode: 'async',
       buffer: `${DEBOUNCE_MS}ms debounce`,
       timestamp: new Date().toISOString(),
@@ -131,7 +143,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Webhook endpoint for ManyChat
+  // Webhook endpoint for ManyChat (WhatsApp + Instagram)
   if (req.method === 'POST' && req.url === '/webhook') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -144,6 +156,11 @@ const server = http.createServer(async (req, res) => {
         const userMessage = data.user_message || data.last_input_text || data.message;
         const replyType = data.reply_type || 'text';
         const phone = data.phone || '';
+        // Campos opcionales que ManyChat puede mandar como custom fields:
+        //   origen: de dónde viene (tiktok_live, instagram, anuncio...)
+        //   canal:  transporte de respuesta ('whatsapp' | 'instagram')
+        const origen = data.origen || data.source || data.utm_source || '';
+        const canal = data.canal || data.channel || '';
 
         if (!userId) {
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -151,7 +168,7 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        console.log(`[Paula] ${userId} (${replyType}): "${userMessage || '[media]'}"`);
+        console.log(`[Paula] ${userId} (${replyType}${canal ? '/' + canal : ''}): "${userMessage || '[media]'}"`);
 
         // Media messages — procesar y responder via ManyChat API inmediatamente
         if (replyType !== 'text') {
@@ -160,9 +177,10 @@ const server = http.createServer(async (req, res) => {
 
           try {
             const paulaResponse = await processPaulaMessage(
-              String(userId), String(userMessage || ''), String(replyType), String(phone)
+              String(userId), String(userMessage || ''), String(replyType), String(phone),
+              String(origen), String(canal)
             );
-            await sendViaManyChat(String(userId), paulaResponse);
+            await sendViaManyChat(String(userId), paulaResponse, canal);
           } catch (err) {
             console.error('[Paula] Error procesando media:', err.message);
           }
@@ -170,7 +188,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         // Text messages — buffer con debounce
-        bufferMessage(String(userId), String(userMessage || ''), String(replyType), String(phone));
+        bufferMessage(String(userId), String(userMessage || ''), String(replyType), String(phone), String(origen), String(canal));
 
         // Responder vacío inmediatamente — la respuesta real llega via ManyChat API
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -185,7 +203,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Cron endpoint for follow-ups
+  // Cron endpoint for follow-ups (recordatorios de compra Apego Detox)
   if (req.method === 'GET' && req.url === '/cron/followup') {
     try {
       const result = await runFollowUp();
@@ -207,6 +225,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`[Paula] Servidor activo en puerto ${PORT}`);
   console.log(`[Paula] Modelo: ${process.env.PAULA_MODEL || 'openai/gpt-4.1'}`);
+  console.log(`[Paula] Objetivo: cierre de venta Apego Detox ($37.97/mes)`);
   console.log(`[Paula] Modo: ASYNC (webhook inmediato + ManyChat API callback)`);
   console.log(`[Paula] Buffer: ${DEBOUNCE_MS}ms debounce`);
   console.log(`[Paula] Webhook: POST /webhook`);

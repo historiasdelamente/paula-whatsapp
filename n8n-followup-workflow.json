@@ -5,11 +5,11 @@
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "hours", "hoursInterval": 6 }
+            { "field": "hours", "hoursInterval": 2 }
           ]
         }
       },
-      "name": "Every 6 Hours",
+      "name": "Every 2 Hours",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [250, 300]
@@ -26,7 +26,7 @@
     }
   ],
   "connections": {
-    "Every 6 Hours": {
+    "Every 2 Hours": {
       "main": [
         [{ "node": "Trigger Follow-Up", "type": "main", "index": 0 }]
       ]

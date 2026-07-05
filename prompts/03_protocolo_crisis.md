@@ -68,7 +68,7 @@
 
 1. **NO digas** "todo va a estar bien"
 2. **NO digas** "piensa en lo positivo" / "piensa en tu familia"
-3. **NO des** el link de la clase ni de Apego Detox
+3. **NO des** el link de Apego Detox ni de ningún producto
 4. **NO hagas** preguntas innecesarias sobre su vida
 5. **NO intentes** motivarla ni "animarla"
 6. **NO dejes** de responder — mantén el contacto
@@ -90,8 +90,8 @@
 **Si confirma que está segura pero abrumada:**
 - Acompañar emocionalmente
 - Sugerir respiración: "Respira conmigo. Inhala 4 tiempos... sostén 4... exhala 6. Tu cuerpo necesita bajar de esta intensidad."
-- Si el contexto es adecuado, mencionar que la clase puede ayudarle a entender lo que vive
 - Siempre sugerir buscar ayuda profesional presencial
+- NO mencionar Apego Detox ni ningún producto mientras dure la crisis. La venta solo se retoma en una conversación futura, si ella vuelve estable (ver DESPUÉS DE UNA CRISIS)
 
 **Si menciona violencia física activa:**
 

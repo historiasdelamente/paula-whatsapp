@@ -2,47 +2,66 @@ const fs = require('fs');
 const path = require('path');
 const { withRetry, fetchWithTimeout } = require('./utils');
 
-// --- Captura de lead -> embudo desing_web (/api/leads/capture) ---
-// Paula NO manda el correo ni el PDF: solo dispara el endpoint publico del sitio,
-// que agrega el contacto a Resend, manda el correo 1 (libro + grupo) y programa
-// la secuencia. Paula entrega los links del grupo y el curso en el chat (04_flujos).
+// ============================================================================
+// PAULA — CERRADORA DE APEGO DETOX
+// Flujo único de venta: conectar con el dolor -> prescribir Apego Detox ->
+// cerrar. El embudo viejo (libro gratis + grupo + curso via /api/leads/capture)
+// fue RETIRADO por decisión de negocio (2026-07-04).
+//
+// Etapas (wa_users.funnel_stage):
+//   new_lead      -> conversando, aún sin link
+//   link_enviado  -> Paula ya entregó el link (pago o landing)
+//   compradora    -> ella confirmó la compra (modo post-venta, cero venta)
+//   no_molestar   -> pidió no recibir más mensajes (sin follow-ups)
+// Valores legacy ('libro_enviado' del embudo viejo) se tratan como new_lead.
+// ============================================================================
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Links canon (mismos que la landing desing_web — si cambian allá, cambiar acá
+// y en prompts/05_config_dinamica.md).
+const CHECKOUT_MARKER = 'pay.hotmart.com/W102751360L';
+const LANDING_MARKER = 'historiasdelamente.com/apegodetox';
 
-// La IA marca AL FINAL de su mensaje, cuando ya tiene nombre + correo valido:
-//   [[LEAD: nombre=Luisa | email=luisa@correo.com]]
-// paula.js lo detecta, dispara el embudo y BORRA la marca antes de responder.
-const LEAD_TAG_RE = /\[\[\s*LEAD:\s*nombre\s*=\s*([^|\]]+?)\s*\|\s*email\s*=\s*([^\]]+?)\s*\]\]/i;
+// --- Marcas ocultas que emite la IA (el sistema las borra antes de responder) ---
+const COMPRA_TAG_RE = /\[\[\s*COMPRA\s*\]\]/gi;
+const NO_MOLESTAR_TAG_RE = /\[\[\s*NO_MOLESTAR\s*\]\]/gi;
+// La marca [[LEAD]] del embudo viejo ya no dispara nada, pero se sigue borrando
+// por si el modelo la emite por inercia del historial.
+const LEGACY_LEAD_TAG_RE = /\[\[\s*LEAD:[^\]]*\]\]/gi;
 
-function parseLeadTag(text) {
-  if (!text) return null;
-  const m = text.match(LEAD_TAG_RE);
-  if (!m) return null;
-  const nombre = m[1].trim();
-  const email = m[2].trim().toLowerCase();
-  if (!nombre || nombre.length < 2 || nombre.length > 80) return null;
-  if (!EMAIL_RE.test(email) || email.length > 200) return null;
-  return { nombre, email };
+function stripHiddenTags(text) {
+  return (text || '')
+    .replace(COMPRA_TAG_RE, '')
+    .replace(NO_MOLESTAR_TAG_RE, '')
+    .replace(LEGACY_LEAD_TAG_RE, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
-function stripLeadTag(text) {
-  return (text || '').replace(LEAD_TAG_RE, '').replace(/\n{3,}/g, '\n\n').trim();
-}
+// --- Detección determinista en el mensaje de ELLA (no depende del LLM) ---
 
-// Red de seguridad: extraer correo del mensaje de la usuaria (no depende del LLM).
+// "ya pagué", "acabo de comprar", "ya me inscribí", "ya hice el pago"...
+// OJO: sin \b al final — en JS \b falla tras vocales acentuadas ("pagué", "inscribí").
+const COMPRA_USER_RE = /\b(ya\s+(pagu[eé]|compr[eé]|me\s+inscrib[ií])|acabo\s+de\s+(pagar|comprar|inscribirme)|ya\s+hice\s+el\s+pago|ya\s+estoy\s+(dentro|inscrita))/i;
+
+// "no me escribas más", "deja de escribirme", "bórrame"...
+const NO_MOLESTAR_USER_RE = /(no\s+me\s+escriba[sn]\s+m[aá]s|no\s+me\s+escriba[sn]\b|deja\s+de\s+escribirme|dejen\s+de\s+escribirme|no\s+quiero\s+(m[aá]s\s+)?mensajes|no\s+me\s+contacten|b[oó]rrame|qu[ií]tame\s+de\s+(la\s+)?lista)/i;
+
+// Correo suelto en el mensaje (solo para guardarlo como dato de contacto;
+// ya NO dispara ningún embudo).
 function extractEmail(text) {
   if (!text) return null;
   const m = String(text).match(/[^\s@]+@[^\s@]+\.[^\s@]{2,}/);
   return m ? m[0].trim().toLowerCase() : null;
 }
 
-// Heurística conservadora de nombre (solo si la IA aún no marcó el nombre).
+// Heurística conservadora de nombre (para personalizar chat y follow-ups).
 // Acepta 1-3 palabras alfabéticas; descarta saludos/keywords comunes.
 const NOMBRE_STOP = new Set([
   'hola', 'holi', 'buenas', 'buenos', 'si', 'sí', 'no', 'ok', 'okey', 'okay',
   'vale', 'claro', 'gracias', 'quiero', 'libro', 'ayuda', 'info', 'informacion',
   'información', 'dale', 'listo', 'bueno', 'bien', 'mal', 'hey', 'que', 'qué',
-  'como', 'cómo', 'tu', 'tú', 'curso', 'grupo', 'correo',
+  'como', 'cómo', 'tu', 'tú', 'curso', 'grupo', 'correo', 'precio', 'pago',
+  'link', 'programa', 'detox', 'apego',
 ]);
 function guessName(text) {
   if (!text) return null;
@@ -53,42 +72,6 @@ function guessName(text) {
   if (words.length < 1 || words.length > 3) return null;
   if (words.some((w) => NOMBRE_STOP.has(w.toLowerCase()))) return null;
   return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-}
-
-// Dispara el embudo una sola vez y marca el candado anti-duplicado.
-async function dispararCaptura(manychatId, user, nombre, email) {
-  await withRetry(
-    () => enviarLeadCaptura({ nombre, email, origen: user.origen }),
-    { maxRetries: 2, baseDelay: 2000, label: 'enviarLeadCaptura' }
-  );
-  await updateUser(manychatId, { name: nombre, funnel_stage: 'libro_enviado' });
-  user.funnel_stage = 'libro_enviado';
-  user.name = nombre;
-  // best-effort: si la columna 'email' no existe, no rompe el flujo.
-  try { await updateUser(manychatId, { email }); }
-  catch (e) { console.warn('[Paula] correo no persistido (columna email?):', e.message); }
-}
-
-async function enviarLeadCaptura({ nombre, email, origen }) {
-  const baseUrl = process.env.WEB_BASE_URL || 'https://historiasdelamente.com';
-  const response = await fetchWithTimeout(`${baseUrl}/api/leads/capture`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      email,
-      nombre,
-      utmSource: origen || 'whatsapp',
-      utmMedium: 'paula',
-      utmCampaign: 'clase_libro_funnel',
-      utmContent: 'paula_bot',
-    }),
-    timeoutMs: 12000,
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`leads/capture (${response.status}): ${err.slice(0, 200)}`);
-  }
-  return response.json();
 }
 
 // --- Supabase Config ---
@@ -149,12 +132,12 @@ setInterval(() => {
 // --- Media Handling ---
 
 const MEDIA_RESPONSES = {
-  audio: 'No puedo escuchar audios por aqui, pero me encantaria leerte. Me escribes lo que querias decirme? \uD83D\uDC9B',
-  image: 'Vi que me mandaste una imagen pero no puedo verla por aqui. Si necesitas contarme algo, escribemelo y te ayudo \u2728',
-  video: 'Recibi tu video pero no puedo reproducirlo por aqui. Me cuentas en texto lo que querias mostrarme? \uD83D\uDC9B',
-  sticker: 'Recibi tu sticker \uD83D\uDC9B Cuentame, como estas?',
-  document: 'Recibi tu archivo pero no puedo abrirlo por aqui. Si necesitas algo, escribemelo y te ayudo \u2728',
-  location: 'Recibi tu ubicacion. Si necesitas algo, cuentame por texto y te ayudo \uD83D\uDC9B',
+  audio: 'No puedo escuchar audios por aqui, pero me encantaria leerte. Me escribes lo que querias decirme? 💛',
+  image: 'Vi que me mandaste una imagen pero no puedo verla por aqui. Si necesitas contarme algo, escribemelo y te ayudo ✨',
+  video: 'Recibi tu video pero no puedo reproducirlo por aqui. Me cuentas en texto lo que querias mostrarme? 💛',
+  sticker: 'Recibi tu sticker 💛 Cuentame, como estas?',
+  document: 'Recibi tu archivo pero no puedo abrirlo por aqui. Si necesitas algo, escribemelo y te ayudo ✨',
+  location: 'Recibi tu ubicacion. Si necesitas algo, cuentame por texto y te ayudo 💛',
 };
 
 function isMediaReply(replyType) {
@@ -228,30 +211,50 @@ async function saveMessage(manychatId, role, message) {
   });
 }
 
+// PATCH en dos partes: los campos que seguro existen van juntos; los campos
+// opcionales (email/origen/canal — pueden no existir como columna) van cada uno
+// por separado en best-effort, para que un schema viejo nunca rompa el flujo.
 async function updateUser(manychatId, updates) {
   const fields = { last_interaction: new Date().toISOString() };
   if (updates) {
     if (updates.phone) fields.phone = updates.phone;
     if (updates.name) fields.name = updates.name;
-    if (updates.email) fields.email = updates.email;
     if (updates.funnel_stage) fields.funnel_stage = updates.funnel_stage;
-    if (updates.origen) fields.origen = updates.origen;
   }
   await supabaseQuery(`wa_users?manychat_id=eq.${manychatId}`, {
     method: 'PATCH',
     body: JSON.stringify(fields),
   });
+
+  const optional = {};
+  if (updates && updates.email) optional.email = updates.email;
+  if (updates && updates.origen) optional.origen = updates.origen;
+  if (updates && updates.canal) optional.canal = updates.canal;
+  for (const [col, val] of Object.entries(optional)) {
+    try {
+      await supabaseQuery(`wa_users?manychat_id=eq.${manychatId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ [col]: val }),
+      });
+    } catch (e) {
+      console.warn(`[Paula] columna opcional '${col}' no persistida:`, e.message);
+    }
+  }
+}
+
+async function setStage(manychatId, user, stage) {
+  await updateUser(manychatId, { funnel_stage: stage });
+  user.funnel_stage = stage;
 }
 
 // --- Prompt Assembly ---
 
 function buildSystemPrompt(user, phone) {
-  // Flujo nuevo (capturar nombre+correo -> entregar libro/grupo/curso): se cargan
-  // solo sistema + flujo + config + contexto + crisis. El banco/libro-nina/apego-detox
-  // del flujo viejo de venta ya NO se cargan.
   const sistema = loadPrompt('00_sistema_paula.md');
   const flujos = loadPrompt('04_flujos_conversacion.md');
   const config = loadPrompt('05_config_dinamica.md');
+  const producto = loadPrompt('07_apego_detox.md');
+  const banco = loadPrompt('02_banco_respuestas.md');
   const crisis = loadPrompt('03_protocolo_crisis.md');
   const userContext = buildUserContext(user, phone);
 
@@ -274,6 +277,16 @@ ${config}
 
 ---
 
+# BASE DE CONOCIMIENTO DEL PRODUCTO (APEGO DETOX)
+${producto}
+
+---
+
+# BANCO DE RESPUESTAS (OBJECIONES Y FAQ)
+${banco}
+
+---
+
 # PROTOCOLO DE CRISIS (PRIORIDAD MAXIMA)
 ${crisis}`;
 }
@@ -285,22 +298,27 @@ function buildUserContext(user, phone) {
   } else {
     lines.push('- Nombre: NO LO SABEMOS TODAVIA -- preguntarlo (Paso 1)');
   }
-  if (user.email) {
-    lines.push(`- Correo: ${user.email}`);
-  } else {
-    lines.push('- Correo: NO LO TENEMOS TODAVIA -- pedirlo (Paso 2)');
+  if (user.origen) {
+    lines.push(`- Origen: ${user.origen} (adapta la apertura a este canal)`);
   }
-  if (user.funnel_stage === 'libro_enviado') {
-    lines.push('- LIBRO/EMBUDO YA ENVIADO: SI. NO volver a pedir nombre ni correo, NO repetir la marca [[LEAD]]. Solo acompanar y, si pregunta, reenviar el link del grupo o del curso.');
+
+  const stage = user.funnel_stage || 'new_lead';
+  if (stage === 'compradora') {
+    lines.push('- ETAPA: COMPRADORA. Ya pagó Apego Detox. MODO POST-VENTA: cero venta, no mandes links de pago. Acompaña, resuelve dudas de acceso, recuerda las clases en vivo (martes y jueves 8 pm Colombia) y el WhatsApp de Javier si hay problemas de acceso.');
+  } else if (stage === 'link_enviado') {
+    lines.push('- ETAPA: LINK YA ENVIADO. No repitas el link salvo que ella lo pida. Tu foco ahora: descubrir qué la frena (pregunta directa) y resolver ESA objeción, luego cerrar de nuevo.');
+  } else if (stage === 'no_molestar') {
+    lines.push('- ETAPA: PIDIO NO RECIBIR MENSAJES. Si su ultimo mensaje es pedir que no le escribas, despidete con respeto en 1 solo mensaje, sin vender. Si volvio a escribir por su cuenta con otro tema, responde con suavidad, sin venta agresiva; si pregunta por el programa, retoma normal.');
   } else {
-    lines.push('- Libro/embudo enviado: NO -- objetivo: capturar nombre + correo y emitir [[LEAD: ...]]');
+    lines.push('- ETAPA: EN CONVERSACION. Objetivo: validar su dolor, prescribir Apego Detox y cerrar la venta (ver flujo).');
   }
+
   lines.push(`- Mensajes intercambiados: ${user.conversation_count}`);
   if (user.situacion_resumen) {
     lines.push(`- Resumen de su situacion: ${user.situacion_resumen}`);
   }
   if (isVenezuela(phone)) {
-    lines.push('- Pais: VENEZUELA -- NO ofrecer programa de terapia 3 Citas Psicologicas');
+    lines.push('- Pais: VENEZUELA -- si pregunta por terapia individual, NO ofrecerla. Solo Apego Detox.');
   }
   return lines.join('\n');
 }
@@ -339,16 +357,18 @@ async function callOpenRouter(systemPrompt, messages) {
 
 // --- Main Entry Point ---
 
-async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
+async function processPaulaMessage(manychatId, userMessage, replyType, phone, origen, canal) {
   replyType = replyType || 'text';
   phone = phone || '';
+  origen = origen || '';
+  canal = canal || '';
 
   // Handle media messages (audio, image, video, etc.)
   if (isMediaReply(replyType)) {
     const mediaResponse = MEDIA_RESPONSES[replyType];
     await saveMessage(manychatId, 'user', `[${replyType}]`);
     await saveMessage(manychatId, 'assistant', mediaResponse);
-    await updateUser(manychatId, { phone });
+    await updateUser(manychatId, { phone, origen, canal });
     return mediaResponse;
   }
 
@@ -358,38 +378,49 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
     const mediaResponse = MEDIA_RESPONSES[detectedMedia];
     await saveMessage(manychatId, 'user', `[${detectedMedia}]`);
     await saveMessage(manychatId, 'assistant', mediaResponse);
-    await updateUser(manychatId, { phone });
+    await updateUser(manychatId, { phone, origen, canal });
     return mediaResponse;
   }
 
   // If no text message, ask for text
   if (!userMessage || userMessage.trim() === '') {
-    const fallback = 'Recibi tu mensaje pero no pude leer el contenido. Me lo escribes en texto? Asi puedo ayudarte mejor \uD83D\uDC9B';
+    const fallback = 'Recibi tu mensaje pero no pude leer el contenido. Me lo escribes en texto? Asi puedo ayudarte mejor 💛';
     await saveMessage(manychatId, 'user', '[mensaje sin texto]');
     await saveMessage(manychatId, 'assistant', fallback);
-    await updateUser(manychatId, { phone });
+    await updateUser(manychatId, { phone, origen, canal });
     return fallback;
   }
 
   const user = await getOrCreateUser(manychatId);
 
-  // --- Red de seguridad determinista (ANTES del LLM) ---
-  // Captura nombre (heurística) y correo (regex) directo del mensaje de la usuaria.
-  // Si tenemos ambos y aún no se envió el libro, dispara el embudo sin depender de
-  // que el modelo emita la marca [[LEAD]]. El candado funnel_stage evita duplicados.
-  if (user.funnel_stage !== 'libro_enviado') {
-    if (!user.name) {
-      const maybe = guessName(userMessage);
-      if (maybe) {
-        try { await updateUser(manychatId, { name: maybe }); user.name = maybe; }
-        catch (e) { /* columna name siempre existe; ignorar transitorios */ }
-      }
+  // --- Detección determinista ANTES del LLM (no depende del modelo) ---
+
+  // Nombre (heurística) — para personalizar chat y recordatorios.
+  if (!user.name) {
+    const maybe = guessName(userMessage);
+    if (maybe) {
+      try { await updateUser(manychatId, { name: maybe }); user.name = maybe; }
+      catch (e) { /* transitorio: se reintenta en el próximo mensaje */ }
     }
-    const emailUsuaria = extractEmail(userMessage);
-    if (emailUsuaria && user.name) {
-      try { await dispararCaptura(manychatId, user, user.name, emailUsuaria); }
-      catch (err) { console.error('[Paula] captura determinista fallo:', err.message); }
-    }
+  }
+
+  // Correo suelto — se guarda como dato de contacto (ya NO dispara embudos).
+  const emailUsuaria = extractEmail(userMessage);
+  if (emailUsuaria && !user.email) {
+    try { await updateUser(manychatId, { email: emailUsuaria }); user.email = emailUsuaria; }
+    catch (e) { /* best-effort */ }
+  }
+
+  // Confirmación de compra dicha por ella.
+  if (user.funnel_stage !== 'compradora' && COMPRA_USER_RE.test(userMessage)) {
+    try { await setStage(manychatId, user, 'compradora'); }
+    catch (e) { console.error('[Paula] no se pudo marcar compradora:', e.message); }
+  }
+
+  // Pidió no recibir más mensajes.
+  if (user.funnel_stage !== 'no_molestar' && NO_MOLESTAR_USER_RE.test(userMessage)) {
+    try { await setStage(manychatId, user, 'no_molestar'); }
+    catch (e) { console.error('[Paula] no se pudo marcar no_molestar:', e.message); }
   }
 
   const history = await getConversationHistory(manychatId, 20);
@@ -397,71 +428,34 @@ async function processPaulaMessage(manychatId, userMessage, replyType, phone) {
   const messages = [...history, { role: 'user', content: userMessage }];
   let paulaResponse = await callOpenRouter(systemPrompt, messages);
 
-  // --- Captura por marca [[LEAD]] (secundaria, por si la heurística no la tomó) ---
-  // La marca se borra SIEMPRE antes de responder (nunca la ve la usuaria).
-  if (user.funnel_stage !== 'libro_enviado') {
-    const lead = parseLeadTag(paulaResponse);
-    if (lead) {
-      try { await dispararCaptura(manychatId, user, lead.nombre, lead.email); }
-      catch (err) { console.error('[Paula] captura por marca fallo:', err.message); }
-    }
+  // --- Marcas de la IA (secundarias a la detección determinista) ---
+  if (user.funnel_stage !== 'compradora' && COMPRA_TAG_RE.test(paulaResponse)) {
+    try { await setStage(manychatId, user, 'compradora'); }
+    catch (e) { console.error('[Paula] marca COMPRA fallo:', e.message); }
   }
+  COMPRA_TAG_RE.lastIndex = 0;
 
-  paulaResponse = stripLeadTag(paulaResponse);
+  if (user.funnel_stage !== 'no_molestar' && user.funnel_stage !== 'compradora' && NO_MOLESTAR_TAG_RE.test(paulaResponse)) {
+    try { await setStage(manychatId, user, 'no_molestar'); }
+    catch (e) { console.error('[Paula] marca NO_MOLESTAR fallo:', e.message); }
+  }
+  NO_MOLESTAR_TAG_RE.lastIndex = 0;
+
+  paulaResponse = stripHiddenTags(paulaResponse);
+
+  // --- Detección determinista del link en la respuesta de Paula ---
+  // Si entregó el checkout o la landing y ella aún no compró, pasa a link_enviado.
+  const stage = user.funnel_stage || 'new_lead';
+  const linkEntregado = paulaResponse.includes(CHECKOUT_MARKER) || paulaResponse.includes(LANDING_MARKER);
+  if (linkEntregado && stage !== 'compradora' && stage !== 'no_molestar' && stage !== 'link_enviado') {
+    try { await setStage(manychatId, user, 'link_enviado'); }
+    catch (e) { console.error('[Paula] no se pudo marcar link_enviado:', e.message); }
+  }
 
   await saveMessage(manychatId, 'user', userMessage);
   await saveMessage(manychatId, 'assistant', paulaResponse);
-  await updateUser(manychatId, { phone });
+  await updateUser(manychatId, { phone, origen, canal });
   return paulaResponse;
 }
 
-// --- MarketingDetox Bridge ---
-
-async function getPersonalizedRecommendations(user, detectedTopics) {
-  const marketingUrl = process.env.MARKETING_DETOX_URL;
-  const apiKey = process.env.MARKETING_DETOX_API_KEY;
-  if (!marketingUrl || !apiKey) return null;
-
-  try {
-    const response = await fetchWithTimeout(`${marketingUrl}/api/paula/recommend`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        user_profile: {
-          manychat_id: user.manychat_id,
-          name: user.name,
-          funnel_stage: user.funnel_stage,
-          conversation_count: user.conversation_count,
-          situacion_resumen: user.situacion_resumen,
-          detected_topics: detectedTopics,
-        },
-        detected_topics: detectedTopics,
-      }),
-      timeoutMs: 5000,
-    });
-
-    if (!response.ok) return null;
-    const data = await response.json();
-    return data.recommendations || null;
-  } catch {
-    return null;
-  }
-}
-
-// Simple topic detection from conversation
-function detectTopics(message) {
-  const topics = [];
-  const text = message.toLowerCase();
-  if (text.match(/narcis|narc|manipula|gasligh/)) topics.push('narcisismo');
-  if (text.match(/apego|aferra|depen|no puedo dejarlo/)) topics.push('apego');
-  if (text.match(/trauma|bond|adicci|regresar|volver con/)) topics.push('trauma_bonding');
-  if (text.match(/ni[ñn]a interior|infancia|mama|papa|herida/)) topics.push('nina_interior');
-  if (text.match(/sanar|salir|superar|recuperar|nueva vida/)) topics.push('sanacion');
-  if (text.match(/crisis|no puedo mas|quiero morir|auxilio/)) topics.push('crisis');
-  return topics;
-}
-
-module.exports = { processPaulaMessage, getPersonalizedRecommendations, detectTopics };
+module.exports = { processPaulaMessage };

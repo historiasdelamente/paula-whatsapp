@@ -1,12 +1,10 @@
-/**
- * Standalone cron trigger for Paula follow-up.
- *
- * Run every 6 hours via:
- *   - crontab: 0 */6 * * * node /path/to/cron-followup.js
- *   - n8n: HTTP Request node → GET http://localhost:3000/cron/followup
- *   - EasyPanel: scheduled task
- *   - PM2: pm2 start cron-followup.js --cron "0 */6 * * *"
- */
+// Standalone cron trigger for Paula follow-up (recordatorios Apego Detox).
+//
+// Correr cada 2 horas via:
+//   - crontab: 0 0-23/2 * * * node /path/to/cron-followup.js
+//   - n8n: HTTP Request node -> GET http://localhost:3000/cron/followup
+//   - EasyPanel: scheduled task
+//   - PM2: pm2 start cron-followup.js --cron "0 0-23/2 * * *"
 
 const PAULA_URL = process.env.PAULA_URL || 'http://localhost:3000';
 

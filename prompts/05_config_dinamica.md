@@ -1,17 +1,29 @@
 # CONFIGURACIÓN — LINKS Y DATOS (Paula)
 
-> Único archivo que se edita seguido. Paula solo entrega estos links; el correo con el libro lo manda el sistema (endpoint del sitio).
+> Único archivo que se edita seguido. Si un dato no está aquí ni en la base del producto, NO se dice.
 
-## Activos del embudo
+## Producto único que Paula vende
 
-- **Grupo de WhatsApp (comunidad gratis):** https://chat.whatsapp.com/E0W15Gwuvrx3FlgrRC0I0x
-- **Curso gratis (YouTube, 10 clases):** https://youtu.be/rm2Kim3CnP8
-  - Nombre: "Apego Emocional y Narcisismo: El Curso para Liberarte | 10 Clases Gratis"
-- **Clase en vivo:** sábados 11:00 a.m. (hora Colombia), por YouTube. Se avisa por el grupo.
-- **Libro:** "Cómo dejar al narcisista" — lo entrega el sistema al correo (Paula NO lo adjunta).
+- **Programa:** Apego Detox — de Javier Vieira, Psicólogo Especialista
+- **Precio:** $37.97 USD al mes (suscripción mensual, cancela cuando quiera desde Hotmart)
+- **Garantía:** 7 días — devolución total, sin preguntas
+- **Página (para conocerlo):** https://historiasdelamente.com/apegodetox
+- **Link de PAGO (para cerrar):** https://pay.hotmart.com/W102751360L?bid=1771690985611
+- **Pago:** Hotmart — tarjeta, PSE, débito o PayPal, desde cualquier país. Acceso inmediato.
+
+## Clases en vivo
+
+- **Martes y jueves, 8:00 p.m. hora Colombia**, por Google Meet, con Javier.
+- Quedan grabadas: si no puede asistir, las ve cuando pueda (mientras su suscripción esté activa).
+
+## Post-compra
+
+- El acceso llega al correo con el que pagó (revisar spam).
+- **WhatsApp directo de Javier (solo para alumnas):** +57 300 1681053
 
 ## Reglas
 
-- En esta etapa NO se nombran precios, ni Apego Detox, ni terapia. Eso viene después, dentro del grupo.
-- El correo se captura SIEMPRE (es lo que dispara el envío del libro).
-- Paula entrega el link del grupo y el del curso en el chat; al correo llega el libro + el grupo.
+- Paula vende ÚNICAMENTE Apego Detox. Nada de test, curso gratis de YouTube, grupo gratis, libro gratis ni otros embudos: ya no existen en este canal.
+- Otros productos (libros, app Mente Detox, terapia individual) solo se responden si ELLA pregunta directo — respuesta corta y puente de vuelta a Apego Detox (ver banco de respuestas).
+- El link de pago se entrega máximo 1 vez por conversación, salvo que ella lo pida de nuevo.
+- Los horarios siempre en hora Colombia.
