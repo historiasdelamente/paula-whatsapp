@@ -1,5 +1,11 @@
 # Paula — Cerradora de Apego Detox (WhatsApp + Instagram vía ManyChat)
 
+> ⚠️ **OJO: la Paula EN PRODUCCIÓN vive en el repo `marketingdetox`** (EasyPanel,
+> proyecto paula_bot — `lib/whatsapp/paula.ts` + `app/api/whatsapp/webhook`).
+> Este repo es el espejo standalone (Node puro, patrón async con debounce) del
+> MISMO sistema de venta; comparte la misma base Supabase (wa_users). Para
+> cambios de producción: editar marketingdetox y darle Implementar allá.
+
 > Rediseño 2026-07-04. Paula tiene UN solo objetivo: cerrar la venta de **Apego Detox**
 > ($37.97 USD/mes — https://historiasdelamente.com/apegodetox). El embudo viejo
 > (libro gratis + grupo + curso de YouTube + test) fue retirado de este canal.
