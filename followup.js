@@ -14,6 +14,10 @@ const { withRetry, fetchWithTimeout } = require('./utils');
 
 const CHECKOUT_URL = 'https://pay.hotmart.com/W102751360L?bid=1771690985611';
 const LANDING_URL = 'https://historiasdelamente.com/apegodetox';
+// Grupo gratuito de la comunidad — SOLO para el toque 3 (última ventana):
+// si tras 2 toques de venta no compró, se le da el grupo para no perder el
+// contacto (dentro del grupo no aplica la ventana de 24h de WhatsApp).
+const GRUPO_URL = 'https://chat.whatsapp.com/E0W15Gwuvrx3FlgrRC0I0x';
 
 // Marcadores que indican que la conversación pasó por protocolo de crisis
 // (respuestas de Paula en nivel 1 — líneas de ayuda — y nivel 2 — violencia)
@@ -138,6 +142,16 @@ function copyRecordatorio2(nombre) {
   ], nombre + '2'));
 }
 
+// Toque 3 (~21-23h, última ventana): invitación al grupo. Sin venta dura —
+// el objetivo es no perder el contacto y dejar la puerta abierta.
+function copyInvitacionGrupo(nombre) {
+  const n = saludo(nombre);
+  return cap(pick([
+    `${n}no te voy a llenar de mensajes, tranquila 💛 Solo no quiero que pases por esto sola: este es el grupo donde Javier y la comunidad te acompañan → ${GRUPO_URL}\n\nEntra cuando quieras. Y cuando decidas empezar tu proceso con Apego Detox, aquí estoy ✨`,
+    `${n}te dejo algo antes de despedirme por hoy 💛 Este es el grupo de la comunidad de Javier, donde hay mujeres pasando por lo mismo que tú → ${GRUPO_URL}\n\nAhí se avisan las clases y nadie te deja sola. Cuando estés lista para tu proceso, me escribes ✨`,
+  ], nombre + '3'));
+}
+
 // --- Generador INTELIGENTE (LLM): recordatorio personalizado al dolor de ELLA ---
 // Lee el historial real y escribe un recordatorio de VENTA a su medida.
 // Si falla o devuelve algo inválido, cae al copy fijo.
@@ -236,7 +250,8 @@ async function runFollowUp() {
     try {
       const stage = user.funnel_stage || 'new_lead';
       if (stage === 'compradora' || stage === 'no_molestar') continue;
-      if (user.followup_sent && user.followup2_sent) continue;
+      // OJO: no cortar aquí cuando followup_sent && followup2_sent — el toque 3
+      // (invitación al grupo, ~21-23h) va DESPUÉS de los dos toques de venta.
 
       // Últimos mensajes de esta conversación
       const messages = await supabaseQuery(
@@ -274,6 +289,13 @@ async function runFollowUp() {
         ((m.message.content || '').includes('apegodetox') || (m.message.content || '').includes('hotmart'))
       );
 
+      // ¿Ya tiene el link del grupo? (incluye a las del embudo viejo — a esas
+      // no se les repite la invitación)
+      const grupoYaEnviado = messages.some(m =>
+        m.message && m.message.type === 'ai' &&
+        (m.message.content || '').includes('chat.whatsapp.com')
+      );
+
       let toque = null;
       let patch = null;
 
@@ -283,27 +305,41 @@ async function runFollowUp() {
       } else if (user.followup_sent && !user.followup2_sent && hoursSinceLastMsg >= 16 && hoursSinceHuman >= 16) {
         toque = 2;
         patch = { followup2_sent: true };
+      } else if (user.followup_sent && user.followup2_sent && !grupoYaEnviado && hoursSinceHuman >= 21) {
+        // TOQUE 3 — última ventana (~21-23.5h): no compró tras 2 toques de
+        // venta → invitarla al grupo para no perder el contacto (dentro del
+        // grupo no aplica la ventana de 24h). Idempotencia por contenido: el
+        // link del grupo queda en whatsapp_memoria y grupoYaEnviado lo
+        // bloquea en el próximo run.
+        toque = 3;
       }
 
       if (!toque) continue;
 
-      // Recordatorio inteligente: personalizado al dolor de ELLA vía LLM;
-      // si el generador falla o devuelve algo inválido, copy fijo de venta.
-      let msg = await generarRecordatorioLLM(user, messages, toque, linkYaEnviado);
-      if (msg === 'NO_ENVIAR') continue; // el generador detectó crisis
-      if (!msg) {
-        msg = toque === 1
-          ? copyRecordatorio1(user.name, linkYaEnviado)
-          : copyRecordatorio2(user.name);
+      let msg;
+      if (toque === 3) {
+        msg = copyInvitacionGrupo(user.name);
+      } else {
+        // Recordatorio inteligente: personalizado al dolor de ELLA vía LLM;
+        // si el generador falla o devuelve algo inválido, copy fijo de venta.
+        msg = await generarRecordatorioLLM(user, messages, toque, linkYaEnviado);
+        if (msg === 'NO_ENVIAR') continue; // el generador detectó crisis
+        if (!msg) {
+          msg = toque === 1
+            ? copyRecordatorio1(user.name, linkYaEnviado)
+            : copyRecordatorio2(user.name);
+        }
       }
 
       // Marcar ANTES de enviar: si el PATCH falla no se envía nada (se
       // reintenta al próximo cron); si el envío falla tras marcar, se pierde
       // ese recordatorio — preferible a repetírselo cada 2 horas.
-      await supabaseQuery(`wa_users?manychat_id=eq.${user.manychat_id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(patch),
-      });
+      if (patch) {
+        await supabaseQuery(`wa_users?manychat_id=eq.${user.manychat_id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(patch),
+        });
+      }
       await sendManyChatMessage(user.manychat_id, msg, user.canal);
 
       // Guardar en el historial para que Paula tenga el contexto si ella responde
@@ -315,7 +351,7 @@ async function runFollowUp() {
         }),
       });
 
-      console.log(`[FollowUp] Enviado a ${user.manychat_id} (${user.name || 'sin nombre'}) [${Object.keys(patch)[0]}]`);
+      console.log(`[FollowUp] Enviado a ${user.manychat_id} (${user.name || 'sin nombre'}) [${patch ? Object.keys(patch)[0] : 'invitacion_grupo'}]`);
       sent++;
 
     } catch (err) {
